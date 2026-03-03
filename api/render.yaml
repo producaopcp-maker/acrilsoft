@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: acrilsoft-api
+    env: node
+    plan: free
+    rootDir: api
+    buildCommand: npm ci
+    startCommand: node src/server.js
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: MIGRATE_ON_START
+        value: "1"
+      - key: PG_POOL_MAX
+        value: "5"
+      # Set API_KEY in the Render dashboard as a secret
+      # Set ALLOWED_ORIGINS optionally, e.g. https://app.seudominio.com
+      - key: DATABASE_URL
+        fromDatabase:
+          name: acrilsoft-db
+          property: connectionString
+
+databases:
+  - name: acrilsoft-db
+    plan: free
+    databaseName: acrilsoft
+    user: acrilsoft

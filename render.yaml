@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: acrilsoft-api
+    env: node
+    plan: free
+    rootDir: api
+    buildCommand: npm install
+    startCommand: node index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      # Set API_KEY in the Render dashboard as a secret
+      # Set ALLOWED_ORIGINS optionally, e.g. https://app.seudominio.com
+      - key: DATABASE_URL
+        fromDatabase:
+          name: acrilsoft-db
+          property: connectionString
+
+databases:
+  - name: acrilsoft-db
+    plan: free
+    databaseName: acrilsoft
+    user: acrilsoft
