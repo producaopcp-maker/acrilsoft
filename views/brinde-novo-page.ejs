@@ -1,0 +1,40 @@
+
+<div class="card">
+  <div class="card-head">
+    <div>
+      <div class="h1">Novo Brinde</div>
+      <div class="muted">Cadastre um item do estoque de brindes</div>
+    </div>
+  </div>
+
+  <form method="post" action="/brindes/novo" class="form">
+    <div class="grid-2">
+      <label>Nome
+        <input name="nome" class="input" required placeholder="Ex: Caneta"/>
+      </label>
+      <label>Categoria (opcional)
+        <input name="categoria" class="input" placeholder="Ex: Brindes"/>
+      </label>
+      <label>Unidade
+        <input name="unidade" class="input" value="UN" placeholder="UN"/>
+      </label>
+      <label>Estoque atual
+        <input name="estoque_atual" class="input" type="number" value="0"/>
+      </label>
+      <label>Estoque mínimo
+        <input name="estoque_minimo" class="input" type="number" value="0"/>
+      </label>
+      <label>Ativo
+        <select name="ativo" class="input">
+          <option value="1" selected>Sim</option>
+          <option value="0">Não</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn" type="submit">Salvar</button>
+      <a class="btn btn-ghost" href="/brindes/estoque">Voltar</a>
+    </div>
+  </form>
+</div>

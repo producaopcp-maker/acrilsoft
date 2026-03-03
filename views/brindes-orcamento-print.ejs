@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Impressão Orçamento Brindes #<%= orcamento.id %></title>
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    body{ background:#fff; }
+    @page{ size:A4; margin:12mm; }
+
+    .print-shell{ max-width: 980px; margin: 22px auto; padding: 0 14px; }
+    .print-actions{ display:flex; gap:10px; margin-bottom:16px; }
+
+    .page-break{ height: 18px; }
+
+    .attachments-grid{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .attachment-card{ border:1px solid #e5e7eb; border-radius:12px; padding:10px; }
+    .attachment-card img{ width:100%; height:220px; object-fit:contain; display:block; }
+
+    .pill{ display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; border:1px solid var(--border); background:var(--card); font-size:12px; color:var(--muted); }
+
+    @media print{
+      .print-actions{ display:none !important; }
+      body{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .print-shell{ max-width: 190mm; margin:0 auto; padding:0; }
+      .page-break{ page-break-before: always; height:0; }
+      .card{ break-inside: avoid; page-break-inside: avoid; }
+      .attachment-card{ break-inside: avoid; page-break-inside: avoid; }
+      .attachment-card img{ height: 85mm; }
+    }
+  </style>
+</head>
+<body>
+  <div class="print-shell">
+    <% if (!isPdf) { %>
+      <div class="print-actions">
+        <a class="btn btn-primary" href="/brindes/orcamentos/<%= orcamento.id %>/baixar-pdf">Salvar PDF</a>
+        <a class="btn btn-ghost" href="/brindes/orcamentos/<%= orcamento.id %>/whatsapp" target="_blank">Enviar WhatsApp</a>
+        <button class="btn btn-ghost" onclick="window.print()">Imprimir</button>
+        <a class="btn btn-ghost" href="javascript:window.close()">Fechar</a>
+      </div>
+    <% } %>
+
+    <% const fmt = (v) => Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2}); %>
+    <% const validadeDias = Math.max(1, Math.floor(Number(orcamento.validade_em_dias || 7))); %>
+
+    <!-- Página 1 -->
+    <div class="a4-page">
+      <div class="card">
+        <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px;">
+          <div>
+            <div class="h1">Orçamento de Brindes</div>
+            <div class="muted">#<b class="mono"><%= orcamento.id %></b> • Status: <b><%= (orcamento.status || 'RASCUNHO').replace('_',' ') %></b></div>
+          </div>
+          <% if (logoUrl) { %>
+            <img src="<%= logoUrl %>" alt="Logo" style="max-height:72px; max-width:240px; object-fit:contain;" onerror="this.style.display='none'" />
+          <% } %>
+        </div>
+
+        <div style="margin-top:10px; display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+          <div><span class="muted">Cliente:</span> <b><%= (orcamento.cliente_nome || '-') %></b></div>
+          <div><span class="muted">WhatsApp:</span> <b class="mono"><%= (orcamento.cliente_whatsapp || '-') %></b></div>
+          <div><span class="muted">Validade:</span> <b><%= validadeDias %> dia(s)</b></div>
+          <div><span class="muted">Prazo de entrega:</span> <b><%= (prazoInfo && prazoInfo.total_dias) ? (prazoInfo.total_dias + ' dias úteis') : '-' %></b></div>
+        </div>
+
+        <% if (orcamento.observacoes) { %>
+          <div style="margin-top:10px;"><span class="muted">Observações:</span> <b><%= orcamento.observacoes %></b></div>
+        <% } %>
+      </div>
+
+      <div class="card">
+        <div class="h1">Condições comerciais</div>
+        <div style="margin-top:10px; display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+          <div><span class="muted">Pagamento:</span> <b><%= (orcamento.pagamento_texto || '-') %></b></div>
+          <div><span class="muted">Frete:</span> <b><%= (orcamento.frete_texto || '-') %></b></div>
+          <div><span class="muted">Frete (R$):</span> <b>R$ <%= fmt(orcamento.frete_valor || 0) %></b></div>
+          <div><span class="muted">Desconto (R$):</span> <b>R$ <%= fmt(orcamento.desconto_valor || 0) %></b></div>
+        </div>
+        <% if (orcamento.impostos_texto) { %>
+          <div style="margin-top:10px;"><span class="muted">Impostos / Observações fiscais:</span> <b><%= orcamento.impostos_texto %></b></div>
+        <% } %>
+        <% if (orcamento.condicoes_comerciais) { %>
+          <div style="margin-top:6px;"><span class="muted">Observações / Condições:</span> <b><%= orcamento.condicoes_comerciais %></b></div>
+        <% } %>
+      </div>
+
+      <div class="card">
+        <div class="h1">Itens</div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Produto</th>
+                <th>Cód.</th>
+                <th>Fornecedor</th>
+                <th style="text-align:right;">Qtd</th>
+                <th style="text-align:right;">Unit.</th>
+                <th style="text-align:right;">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% if (!itens || itens.length === 0) { %>
+                <tr><td colspan="6" class="td-empty">Nenhum item.</td></tr>
+              <% } %>
+              <% (itens || []).forEach(it => { 
+                   const pers = (personalizacoesByItem && personalizacoesByItem[it.id]) ? personalizacoesByItem[it.id] : [];
+                   const qtd = Math.max(1, Number(it.quantidade||1));
+                   const unit = Number(it.preco_unit_venda || 0);
+                   const total = Number(it.total_venda || (unit*qtd));
+              %>
+                <tr>
+                  <td>
+                    <b><%= it.nome %></b>
+                    <% if (it.layout_nome_original) { %>
+                      <div class="muted" style="font-size:12px; margin-top:2px;">Layout: <%= it.layout_nome_original %></div>
+                    <% } %>
+                    <% if (pers && pers.length) { %>
+                      <div class="muted" style="font-size:12px; margin-top:4px;">
+                        <% pers.forEach(p => { %>
+                          • <%= p.tipo_nome %><% if (p.cores_qtd) { %> • <%= p.cores_qtd %> cor(es)<% } %><% if (p.lado) { %> • <%= p.lado %><% } %><% if (p.tamanho_mm) { %> • <%= p.tamanho_mm %>mm<% } %>
+                          <% if (p.total_personalizacao) { %> — R$ <%= fmt(p.total_personalizacao) %><% } %>
+                          <br/>
+                        <% }) %>
+                      </div>
+                    <% } %>
+                  </td>
+                  <td class="mono"><%= it.codigo_fornecedor || '-' %></td>
+                  <td><%= it.fornecedor_nome || '-' %></td>
+                  <td style="text-align:right;"><b><%= qtd %></b></td>
+                  <td style="text-align:right;">R$ <%= fmt(unit) %></td>
+                  <td style="text-align:right;"><b>R$ <%= fmt(total) %></b></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="h1">Resumo</div>
+        <div style="margin-top:10px; display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+          <div><span class="muted">Subtotal:</span> <b>R$ <%= fmt(orcamento.subtotal || 0) %></b></div>
+          <div><span class="muted">Frete:</span> <b>R$ <%= fmt(orcamento.frete_valor || 0) %></b></div>
+          <div><span class="muted">Desconto:</span> <b>R$ <%= fmt(orcamento.desconto_valor || 0) %></b></div>
+          <div><span class="muted">TOTAL:</span> <b style="font-size:16px;">R$ <%= fmt(orcamento.total || 0) %></b></div>
+        </div>
+        <div class="muted" style="margin-top:10px; font-size:12px;">A aprovação deste orçamento confirma as condições comerciais acima.</div>
+      </div>
+    </div>
+
+    <% 
+      // Anexos: pode existir no orçamento (layout_arquivo) e por item (layout_arquivo)
+      const anexos = [];
+      if (orcamento.layout_arquivo) {
+        anexos.push({
+          nome: orcamento.layout_nome_original || 'Layout do orçamento',
+          arquivo: orcamento.layout_arquivo,
+          obs: orcamento.layout_obs || null
+        });
+      }
+      (itens || []).forEach(it => {
+        if (it.layout_arquivo) {
+          anexos.push({
+            nome: (it.layout_nome_original || ('Layout - ' + (it.nome||'Item'))),
+            arquivo: it.layout_arquivo,
+            obs: null
+          });
+        }
+      });
+      const isImg = (fn) => (/\.(png|jpg|jpeg|webp|gif)$/i).test(String(fn||''));
+      const isPdfFile = (fn) => (/\.pdf$/i).test(String(fn||''));
+    %>
+
+    <% if (anexos.length) { %>
+      <div class="page-break"></div>
+      <div class="a4-page">
+        <div class="card">
+          <div class="h1">Layout / Imagens anexadas</div>
+          <div class="muted">Arquivos vinculados ao orçamento/itens.</div>
+
+          <div class="attachments-grid">
+            <% anexos.forEach(a => { %>
+              <div class="attachment-card">
+                <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-start;">
+                  <div>
+                    <div style="font-weight:800;"><%= a.nome %></div>
+                    <% if (a.obs) { %><div class="muted" style="font-size:12px; margin-top:2px;"><%= a.obs %></div><% } %>
+                  </div>
+                  <a class="btn btn-ghost" href="/uploads/<%= a.arquivo %>" target="_blank" rel="noopener" style="padding:6px 10px; font-size:12px;">Abrir</a>
+                </div>
+
+                <div style="margin-top:10px;">
+                  <% if (isImg(a.arquivo)) { %>
+                    <img src="/uploads/<%= a.arquivo %>" alt="<%= a.nome %>" onerror="this.style.display='none'" />
+                  <% } else if (isPdfFile(a.arquivo)) { %>
+                    <div class="muted" style="padding:14px; border:1px dashed #e5e7eb; border-radius:10px;">
+                      Arquivo em PDF (impressão/preview pelo navegador).
+                    </div>
+                  <% } else { %>
+                    <div class="muted" style="padding:14px; border:1px dashed #e5e7eb; border-radius:10px;">
+                      Formato não suportado para preview.
+                    </div>
+                  <% } %>
+                </div>
+              </div>
+            <% }) %>
+          </div>
+        </div>
+      </div>
+    <% } %>
+
+  </div>
+</body>
+</html>

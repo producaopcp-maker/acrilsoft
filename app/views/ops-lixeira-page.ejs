@@ -1,0 +1,78 @@
+<%
+  const list = Array.isArray(ops) ? ops : [];
+%>
+
+<div class="page-head">
+  <div>
+    <div class="h1">Lixeira de OPs</div>
+    <div class="muted">OPs removidas do sistema. Você pode restaurar ou excluir definitivamente.</div>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-secondary" href="/ops/arquivadas">← Voltar</a>
+  </div>
+</div>
+
+<% if (typeof ok !== 'undefined' && ok) { %>
+  <div class="alert alert-ok"><%= ok %></div>
+<% } %>
+<% if (typeof err !== 'undefined' && err) { %>
+  <div class="alert alert-err"><%= err %></div>
+<% } %>
+
+<div class="card">
+  <div class="card-head">
+    <div>
+      <div class="h2">Itens na lixeira</div>
+      <div class="muted"><%= list.length %> registro(s)</div>
+    </div>
+  </div>
+
+  <div style="overflow:auto">
+    <table class="table" style="min-width: 980px">
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Cliente</th>
+          <th>Pedido</th>
+          <th>Produto final</th>
+          <th>Qtd</th>
+          <th>Status</th>
+          <th>Abertura</th>
+          <th>Entrega</th>
+          <th style="width:240px">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (list.length === 0) { %>
+          <tr>
+            <td colspan="9" class="muted">Nenhuma OP na lixeira.</td>
+          </tr>
+        <% } %>
+
+        <% list.forEach(op => { %>
+          <tr>
+            <td><%= op.codigo_op || ('OP #' + op.id) %></td>
+            <td><%= op.cliente || '-' %></td>
+            <td><%= op.pedido_venda || '-' %></td>
+            <td><%= op.produto_final || '-' %></td>
+            <td><%= (op.quantidade_final ?? '-') %></td>
+            <td><%= op.status || '-' %></td>
+            <td><%= op.data_abertura || '-' %></td>
+            <td><%= op.data_entrega || '-' %></td>
+            <td>
+              <div class="row" style="gap:8px; flex-wrap: wrap;">
+                <form method="post" action="/ops/<%= op.id %>/restaurar" style="display:inline">
+                  <button class="btn btn-secondary" type="submit">Restaurar</button>
+                </form>
+
+                <form method="post" action="/ops/<%= op.id %>/excluir-definitivo" style="display:inline" onsubmit="return confirm('Excluir definitivamente a OP <%= op.codigo_op || ('#'+op.id) %>? Essa ação não pode ser desfeita.');">
+                  <button class="btn btn-danger" type="submit">Excluir definitivo</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>

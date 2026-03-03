@@ -1,0 +1,58 @@
+<div class="page-head">
+  <div>
+    <h1 style="margin:0"><%= pageTitle %></h1>
+    <div class="muted"><%= pageSubtitle %></div>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-primary" href="/usuarios/novo">+ Novo usuário</a>
+  </div>
+</div>
+
+<div class="card">
+  <div style="overflow:auto">
+    <table class="table" style="min-width:840px">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Nome</th>
+          <th>Usuário</th>
+          <th>Perfil</th>
+          <th>Módulos</th>
+          <th>Status</th>
+          <th>Criado em</th>
+          <th style="width:260px">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% users.forEach(u => { %>
+          <tr>
+            <td><%= u.id %></td>
+            <td><%= u.nome %></td>
+            <td><%= u.usuario %></td>
+            <td><span class="badge"><%= u.role %></span></td>
+            <td class="muted"><%= u.modulosText || 'Padrão do perfil' %></td>
+            <td>
+              <% if (u.ativo) { %>
+                <span class="badge badge-ok">Ativo</span>
+              <% } else { %>
+                <span class="badge badge-warn">Inativo</span>
+              <% } %>
+            </td>
+            <td class="muted"><%= (u.created_at||'').replace('T',' ').replace('Z','') %></td>
+            <td>
+              <div style="display:flex; gap:8px; flex-wrap:wrap">
+                <a class="btn btn-outline" href="/usuarios/<%= u.id %>/editar">Editar</a>
+                <form method="POST" action="/usuarios/<%= u.id %>/toggle" style="display:inline">
+                  <button class="btn btn-outline" type="submit"><%= u.ativo ? 'Desativar' : 'Ativar' %></button>
+                </form>
+                <form method="POST" action="/usuarios/<%= u.id %>/reset-senha" style="display:inline">
+                  <button class="btn btn-secondary" type="submit">Reset senha</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>

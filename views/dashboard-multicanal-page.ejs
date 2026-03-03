@@ -1,0 +1,122 @@
+<%
+  const brl = (n) => new Intl.NumberFormat('pt-BR', { style:'currency', currency:'BRL' }).format(Number(n||0));
+  const pct = (n) => `${(Number(n||0)*100).toFixed(1)}%`;
+  const canalBadge = (c) => {
+    const s = String(c||'').toLowerCase();
+    if (s.includes('ml') || s.includes('mercado')) return 'badge badge-ml';
+    if (s.includes('shopee')) return 'badge badge-shopee';
+    if (s.includes('bling')) return 'badge badge-bling';
+    return 'badge badge-ok';
+  };
+%>
+
+<div class="card" style="padding:18px;">
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+    <div>
+      <div class="h2" style="margin:0;">Painel Multicanal</div>
+      <div style="opacity:.8;margin-top:4px;">
+        Período: últimos <b><%= dias %></b> dias (desde <b><%= desde %></b>)
+        <% if (status && status !== 'PADRAO') { %>
+          • Status: <b><%= status %></b>
+        <% } else { %>
+          • Status: <b>Fechados (padrão)</b>
+        <% } %>
+      </div>
+    </div>
+
+    <form method="GET" action="/dashboard/multicanal" style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;">
+      <label style="display:flex;flex-direction:column;gap:6px;">
+        <span style="font-weight:900;opacity:.75;">Período (dias)</span>
+        <input class="input" type="number" name="dias" min="1" max="365" value="<%= dias %>" style="width:110px;">
+      </label>
+
+      <label style="display:flex;flex-direction:column;gap:6px;min-width:220px;">
+        <span style="font-weight:900;opacity:.75;">Status (opcional)</span>
+        <select class="input" name="status">
+          <option value="" <%= (!status || status==='PADRAO') ? 'selected' : '' %>>Padrão (fechados)</option>
+          <option value="TODOS" <%= status==='TODOS' ? 'selected' : '' %>>Todos</option>
+          <option value="APROVADO,PRODUCAO,PRONTO,ENTREGUE" <%= status==='APROVADO,PRODUCAO,PRONTO,ENTREGUE' ? 'selected' : '' %>>Aprovado → Entregue</option>
+          <option value="APROVADO" <%= status==='APROVADO' ? 'selected' : '' %>>Apenas Aprovado</option>
+          <option value="ENTREGUE" <%= status==='ENTREGUE' ? 'selected' : '' %>>Apenas Entregue</option>
+        </select>
+      </label>
+
+      <button class="btn btn-primary" type="submit">Aplicar</button>
+      <a class="btn btn-outline" href="/dashboard/multicanal?dias=30">Reset</a>
+    </form>
+  </div>
+</div>
+
+<div class="kpis" style="margin-top:14px;">
+  <div class="kpi">
+    <div class="kpi-label">Faturamento total</div>
+    <div class="kpi-value"><%= brl(totals?.faturamento) %></div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Margem total</div>
+    <div class="kpi-value"><%= brl(totals?.margem) %></div>
+    <div style="opacity:.8;margin-top:4px;font-weight:900;"><%= pct(totals?.margemPct) %></div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Pedidos</div>
+    <div class="kpi-value"><%= Number(totals?.pedidos || 0) %></div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Ticket médio</div>
+    <div class="kpi-value"><%= brl(totals?.ticket) %></div>
+  </div>
+</div>
+
+<div class="card" style="padding:18px;margin-top:14px;">
+  <div class="h3" style="margin:0 0 10px 0;">Vendas por canal</div>
+
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Canal</th>
+          <th style="text-align:right;">Pedidos</th>
+          <th style="text-align:right;">Faturamento</th>
+          <th style="text-align:right;">Custo</th>
+          <th style="text-align:right;">Margem</th>
+          <th style="text-align:right;">% Margem</th>
+          <th style="text-align:right;">Ticket médio</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (!rows || !rows.length) { %>
+          <tr><td colspan="7" style="opacity:.75;">Sem dados no período.</td></tr>
+        <% } %>
+
+        <% (rows || []).forEach(r => { %>
+          <tr>
+            <td>
+              <span class="<%= canalBadge(r.canal) %>"><%= r.canal %></span>
+            </td>
+            <td style="text-align:right;font-weight:900;"><%= Number(r.pedidos||0) %></td>
+            <td style="text-align:right;font-weight:900;"><%= brl(r.faturamento) %></td>
+            <td style="text-align:right;opacity:.85;"><%= brl(r.custo) %></td>
+            <td style="text-align:right;font-weight:900;"><%= brl(r.margem) %></td>
+            <td style="text-align:right;font-weight:900;"><%= pct(r.margemPct) %></td>
+            <td style="text-align:right;"><%= brl(r.ticket) %></td>
+          </tr>
+        <% }); %>
+      </tbody>
+      <tfoot>
+        <tr>
+          <th>Total</th>
+          <th style="text-align:right;"><%= Number(totals?.pedidos||0) %></th>
+          <th style="text-align:right;"><%= brl(totals?.faturamento) %></th>
+          <th style="text-align:right;"><%= brl(totals?.custo) %></th>
+          <th style="text-align:right;"><%= brl(totals?.margem) %></th>
+          <th style="text-align:right;"><%= pct(totals?.margemPct) %></th>
+          <th style="text-align:right;"><%= brl(totals?.ticket) %></th>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <div style="margin-top:12px;opacity:.8;">
+    Dica: o canal vem do campo <b>canal_venda</b> do pedido (ex.: <b>Loja</b>, <b>ML</b>, <b>Shopee</b>).
+  </div>
+</div>

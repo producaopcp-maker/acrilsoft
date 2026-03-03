@@ -1,0 +1,164 @@
+<div class="settings-page">
+  <% const can = (m) => (typeof canModule === 'function' ? canModule(m) : true); %>
+  <div class="settings-head">
+    <div>
+      <div class="settings-title">Configurações</div>
+      <div class="settings-subtitle">Preferências do sistema, aparência e integrações</div>
+    </div>
+  </div>
+
+  <div class="settings-layout">
+    <div class="settings-tabs" role="tablist" aria-label="Configurações">
+      <a class="settings-tab <%= (tab==='geral'?'active':'') %>" href="/configuracoes?tab=geral"><i data-lucide="sliders-horizontal"></i> Geral</a>
+      <a class="settings-tab <%= (tab==='aparencia'?'active':'') %>" href="/configuracoes?tab=aparencia"><i data-lucide="palette"></i> Aparência</a>
+      <% if (can('usuarios')) { %>
+        <a class="settings-tab <%= (tab==='usuarios'?'active':'') %>" href="/configuracoes?tab=usuarios"><i data-lucide="users"></i> Usuários</a>
+      <% } %>
+      <% if (can('integracoes') || can('bling')) { %>
+        <a class="settings-tab <%= (tab==='integracoes'?'active':'') %>" href="/configuracoes?tab=integracoes"><i data-lucide="plug"></i> Integrações</a>
+      <% } %>
+      <% if (can('backup') || can('branding')) { %>
+        <a class="settings-tab <%= (tab==='sistema'?'active':'') %>" href="/configuracoes?tab=sistema"><i data-lucide="server"></i> Sistema</a>
+      <% } %>
+    </div>
+
+    <div class="settings-content">
+      <% if (tab === 'geral') { %>
+        <div class="card">
+          <div class="card-body">
+            <div class="h2" style="margin-bottom:6px;">Geral</div>
+            <div class="muted">Atalhos e informações rápidas.</div>
+
+            <div class="settings-grid" style="margin-top:14px;">
+              <div class="settings-box">
+                <div class="settings-box-title"><i data-lucide="keyboard"></i> Command Palette</div>
+                <div class="muted">Abra com <b>Ctrl + K</b> para buscar telas e ações.</div>
+              </div>
+              <div class="settings-box">
+                <div class="settings-box-title"><i data-lucide="database"></i> Banco</div>
+                <div class="muted">Modo atual: <b><%= (dbModeText || '').toUpperCase() %></b></div>
+              </div>
+              <div class="settings-box">
+                <div class="settings-box-title"><i data-lucide="shield"></i> Acesso</div>
+                <div class="muted">Gerencie permissões por usuário na aba <b>Usuários</b>.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      <% } %>
+
+      <% if (tab === 'aparencia') { %>
+        <div class="card">
+          <div class="card-body">
+            <div class="h2" style="margin-bottom:6px;">Aparência</div>
+            <div class="muted">Tema e cor de destaque (salvo no navegador).</div>
+
+            <div class="settings-section">
+              <div class="settings-section-title">Tema</div>
+              <div class="settings-row">
+                <button class="btn btn-outline" type="button" data-theme-set="dark"><i data-lucide="moon"></i> Escuro</button>
+                <button class="btn btn-outline" type="button" data-theme-set="light"><i data-lucide="sun"></i> Claro</button>
+              </div>
+            </div>
+
+            <div class="settings-section">
+              <div class="settings-section-title">Cor de destaque</div>
+              <div class="accent-grid settings-accent-grid">
+                <button class="accent-swatch" type="button" data-accent-set="blue" title="Azul"></button>
+                <button class="accent-swatch" type="button" data-accent-set="purple" title="Roxo"></button>
+                <button class="accent-swatch" type="button" data-accent-set="green" title="Verde"></button>
+                <button class="accent-swatch" type="button" data-accent-set="orange" title="Laranja"></button>
+                <button class="accent-swatch" type="button" data-accent-set="pink" title="Rosa"></button>
+                <button class="accent-swatch" type="button" data-accent-set="slate" title="Cinza"></button>
+              </div>
+              <div class="muted" style="margin-top:8px;">Dica: a cor de destaque afeta botões, badges e destaques no sistema.</div>
+            </div>
+
+            <div class="settings-section">
+              <div class="settings-section-title">Teste rápido</div>
+              <div class="settings-row">
+                <button class="btn btn-outline" type="button" data-demo-toast><i data-lucide="bell"></i> Mostrar toast</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      <% } %>
+
+      <% if (tab === 'usuarios') { %>
+        <div class="card">
+          <div class="card-body">
+            <div class="h2" style="margin-bottom:6px;">Usuários</div>
+            <div class="muted">Gerencie usuários, permissões e módulos.</div>
+
+            <div class="settings-actions">
+              <a class="btn btn-primary" href="/usuarios"><i data-lucide="users"></i> Abrir gestão de usuários</a>
+            </div>
+          </div>
+        </div>
+      <% } %>
+
+      <% if (tab === 'integracoes') { %>
+        <div class="card">
+          <div class="card-body">
+            <div class="h2" style="margin-bottom:6px;">Integrações</div>
+            <div class="muted">Conecte canais e automatize operações.</div>
+
+            <div class="settings-grid" style="margin-top:14px;">
+              <% if (can('integracoes') || can('bling')) { %>
+                <a class="settings-box settings-box-link" href="/config/bling">
+                  <div class="settings-box-title"><i data-lucide="link-2"></i> Bling</div>
+                  <div class="muted">Token, OAuth e importação de pedidos.</div>
+                </a>
+
+                <a class="settings-box settings-box-link" href="/integracoes/mercadolivre">
+                  <div class="settings-box-title"><i data-lucide="store"></i> Mercado Livre</div>
+                  <div class="muted">Conexão e sincronização.</div>
+                </a>
+
+                <a class="settings-box settings-box-link" href="/integracoes/shopee">
+                  <div class="settings-box-title"><i data-lucide="shopping-bag"></i> Shopee</div>
+                  <div class="muted">Conexão e sincronização.</div>
+                </a>
+              <% } else { %>
+                <div class="settings-box">
+                  <div class="settings-box-title"><i data-lucide="shield"></i> Sem acesso</div>
+                  <div class="muted">Seu usuário não possui o módulo de integrações habilitado.</div>
+                </div>
+              <% } %>
+            </div>
+          </div>
+        </div>
+      <% } %>
+
+      <% if (tab === 'sistema') { %>
+        <div class="card">
+          <div class="card-body">
+            <div class="h2" style="margin-bottom:6px;">Sistema</div>
+            <div class="muted">Ferramentas administrativas e manutenção.</div>
+
+            <div class="settings-grid" style="margin-top:14px;">
+              <% if (can('backup')) { %>
+                <a class="settings-box settings-box-link" href="/backup">
+                  <div class="settings-box-title"><i data-lucide="hard-drive"></i> Backup</div>
+                  <div class="muted">Gerar e restaurar backups.</div>
+                </a>
+              <% } %>
+
+              <% if (can('branding')) { %>
+                <a class="settings-box settings-box-link" href="/config/branding">
+                  <div class="settings-box-title"><i data-lucide="palette"></i> Identidade Visual</div>
+                  <div class="muted">Logo, cores e identidade do sistema.</div>
+                </a>
+              <% } %>
+
+              <div class="settings-box">
+                <div class="settings-box-title"><i data-lucide="info"></i> Diagnóstico</div>
+                <div class="muted">Use o indicador ONLINE/OFFLINE para verificar conexão.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      <% } %>
+    </div>
+  </div>
+</div>

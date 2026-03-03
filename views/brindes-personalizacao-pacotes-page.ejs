@@ -1,0 +1,151 @@
+<div class="page">
+  <div class="h1">Brindes • Pacotes de Personalização</div>
+  <div class="muted" style="margin-top:6px">Pacotes são combinações prontas de personalizações (ex: Silk frente+verso) para aplicar rapidamente nos itens do orçamento.</div>
+
+  <% if (typeof erro !== 'undefined' && erro) { %>
+    <div class="alert alert-error" style="margin-top:12px"><%= erro %></div>
+  <% } %>
+  <% if (typeof ok !== 'undefined' && ok) { %>
+    <div class="alert alert-ok" style="margin-top:12px"><%= ok %></div>
+  <% } %>
+
+  <div class="card" style="margin-top:14px">
+    <div class="h2">Novo pacote</div>
+    <form class="form" method="post" action="/brindes/personalizacoes/pacotes/novo" style="margin-top:10px">
+      <div class="grid grid-2">
+        <label class="field">
+          <span>Nome</span>
+          <input class="input" name="nome" required placeholder="ex: Silk 1 cor frente + verso">
+        </label>
+        <label class="field">
+          <span>Descrição</span>
+          <input class="input" name="descricao" placeholder="opcional">
+        </label>
+      </div>
+      <button class="btn" type="submit">Criar pacote</button>
+    </form>
+  </div>
+
+  <div class="grid grid-2" style="gap:12px; margin-top:14px">
+    <div class="card">
+      <div class="h2">Pacotes cadastrados</div>
+      <% if (!pacotes || pacotes.length===0) { %>
+        <div class="muted" style="margin-top:8px">Nenhum pacote criado ainda.</div>
+      <% } else { %>
+        <div class="table-wrap" style="margin-top:10px">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Ativo</th>
+                <th class="right">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% pacotes.forEach((p)=>{ %>
+                <tr>
+                  <td>
+                    <b><%= p.nome %></b>
+                    <% if (p.descricao) { %>
+                      <div class="muted" style="font-size:12px"><%= p.descricao %></div>
+                    <% } %>
+                    <div class="muted" style="font-size:12px">ID: <%= p.id %></div>
+                  </td>
+                  <td><%= Number(p.ativo||0)===1 ? 'Sim' : 'Não' %></td>
+                  <td class="right">
+                    <form method="post" action="/brindes/personalizacoes/pacotes/<%= p.id %>/toggle" style="display:inline">
+                      <button class="btn btn-ghost" type="submit"><%= Number(p.ativo||0)===1 ? 'Desativar' : 'Ativar' %></button>
+                    </form>
+                    <form method="post" action="/brindes/personalizacoes/pacotes/<%= p.id %>/delete" style="display:inline">
+                      <button class="btn btn-ghost" type="submit" onclick="return confirm('Excluir pacote? Isso remove também os itens do pacote.')">Excluir</button>
+                    </form>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+      <div class="muted" style="margin-top:10px">Para aplicar nos orçamentos: abra um orçamento → item → “Pacote de personalizações”.</div>
+    </div>
+
+    <div class="card">
+      <div class="h2">Adicionar item em um pacote</div>
+      <div class="muted" style="margin-top:6px">Aqui você monta um pacote manualmente. Dica: também dá pra salvar um pacote direto do item no orçamento.</div>
+
+      <form class="form" method="post" action="/brindes/personalizacoes/pacotes/<%= (pacotes && pacotes[0]) ? pacotes[0].id : 0 %>/itens/add" style="margin-top:10px" onsubmit="return ensurePacoteSelecionado(this)">
+        <label class="field">
+          <span>Pacote</span>
+          <select class="input" name="_pacote_select" onchange="syncPacoteAction(this.form)">
+            <% (pacotes || []).forEach((p)=>{ %>
+              <option value="<%= p.id %>"><%= p.nome %></option>
+            <% }) %>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Tipo</span>
+          <select class="input" name="tipo_id" required>
+            <% (tipos || []).forEach((t)=>{ %>
+              <option value="<%= t.id %>"><%= t.nome %></option>
+            <% }) %>
+          </select>
+        </label>
+
+        <div class="grid grid-3">
+          <label class="field">
+            <span>Cores</span>
+            <input class="input" name="cores" type="number" min="0" placeholder="opcional">
+          </label>
+          <label class="field">
+            <span>Posição</span>
+            <input class="input" name="posicao" placeholder="frente / verso">
+          </label>
+          <label class="field">
+            <span>Tamanho</span>
+            <input class="input" name="tamanho" placeholder="ex: 4x4cm">
+          </label>
+        </div>
+
+        <div class="grid grid-3">
+          <label class="field">
+            <span>Prazo +d (override)</span>
+            <input class="input" name="prazo_dias_override" type="number" min="0" placeholder="vazio = padrão do tipo">
+          </label>
+          <label class="field">
+            <span>Setup (override)</span>
+            <input class="input" name="setup_override" type="number" step="0.01" min="0" placeholder="vazio = sugerido">
+          </label>
+          <label class="field">
+            <span>Unit (override)</span>
+            <input class="input" name="custo_unit_override" type="number" step="0.01" min="0" placeholder="vazio = sugerido">
+          </label>
+        </div>
+
+        <button class="btn" type="submit" <%= (!pacotes || pacotes.length===0) ? 'disabled' : '' %>>Adicionar ao pacote</button>
+        <% if (!pacotes || pacotes.length===0) { %>
+          <div class="muted" style="margin-top:8px">Crie um pacote primeiro para poder adicionar itens.</div>
+        <% } %>
+      </form>
+
+      <script>
+        function syncPacoteAction(form){
+          const sel = form.querySelector('select[name=_pacote_select]');
+          if(!sel) return;
+          const pid = sel.value;
+          form.action = `/brindes/personalizacoes/pacotes/${pid}/itens/add`;
+        }
+        function ensurePacoteSelecionado(form){
+          const sel = form.querySelector('select[name=_pacote_select]');
+          if(!sel || !sel.value){
+            alert('Selecione um pacote.');
+            return false;
+          }
+          syncPacoteAction(form);
+          // remove campo auxiliar para não cair no req.body
+          return true;
+        }
+      </script>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,384 @@
+<%
+  const clientesList = Array.isArray(clientes) ? clientes : [];
+%>
+
+<style>
+  .proposal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+  .proposal-brand{display:flex;align-items:center;gap:10px;}
+  .proposal-brand .logo{width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg, rgba(99,102,241,.18), rgba(34,211,238,.18));display:flex;align-items:center;justify-content:center;font-weight:900;}
+  .proposal-brand .name{font-weight:900;font-size:18px;line-height:1.1;}
+  .proposal-brand .sub{color:var(--muted);font-size:12px;}
+  .proposal-title{font-size:22px;font-weight:900;letter-spacing:-.02em;}
+  .proposal-kpis{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;}
+  .proposal-kpis .k{min-width:160px;border:1px solid var(--border);background:var(--card);border-radius:14px;padding:10px 12px;}
+  .proposal-kpis .k .l{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.12em;}
+  .proposal-kpis .k .v{font-weight:900;font-size:16px;}
+  .proposal-kpis .k.primary{box-shadow:0 10px 24px rgba(0,0,0,.06);}
+
+  .section-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;}
+  .section-title .t{font-weight:900;font-size:15px;}
+  .section-title .s{color:var(--muted);font-size:12px;}
+  .hint{color:var(--muted);font-size:12px;margin-top:6px;}
+
+  .disabled-wrap{ position:relative; }
+  .disabled-wrap .disabled-overlay{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    background:rgba(255,255,255,.78); border-radius:14px; border:1px dashed var(--border);
+    padding:14px; text-align:center;
+    z-index:5;
+  }
+  .disabled-wrap .disabled-overlay .msg{ max-width:440px; }
+  .disabled-wrap .disabled-overlay .msg .t{ font-weight:900; margin-bottom:4px; }
+  .disabled-wrap .disabled-overlay .msg .s{ color:var(--muted); font-size:13px; }
+
+  .proposal-table thead th{font-size:12px;letter-spacing:.12em;text-transform:uppercase;}
+
+  /* Layout de formulário (proposta) */
+  .proposal-form .input, .proposal-form .select, .proposal-form textarea, .proposal-form select, .proposal-form input{ width:100%; box-sizing:border-box; }
+  .grid.grid-2{ grid-template-columns: repeat(2, minmax(260px, 1fr)); }
+  @media (max-width: 980px){
+    .grid.grid-2{ grid-template-columns: 1fr; }
+  }
+
+  /* Evita sobreposição do overlay com o cabeçalho/tabela na página de criação */
+  .disabled-wrap.items-block{ min-height: 220px; }
+  .disabled-wrap.items-block .disabled-overlay{ align-items:flex-start; padding-top:78px; }
+</style>
+
+<div class="page orc-produtos">
+  <div class="card" style="margin-top:10px;">
+    <div class="card-body">
+      <div class="proposal-head">
+        <div>
+          <div class="proposal-brand">
+            <div class="logo">A</div>
+            <div>
+              <div class="name">Acrilsoft</div>
+              <div class="sub">Proposta Comercial • Orçamento de Produtos</div>
+            </div>
+          </div>
+          <div style="margin-top:10px;" class="proposal-title">Novo Orçamento</div>
+          <div class="hint">Preencha os dados da proposta. Depois de criar, você adiciona os itens (revenda/estoque ou sob medida) e o sistema calcula os totais automaticamente.</div>
+
+          <div class="proposal-kpis">
+            <div class="k"><div class="l">Status</div><div class="v">RASCUNHO</div></div>
+            <div class="k"><div class="l">Itens</div><div class="v">0</div></div>
+            <div class="k primary"><div class="l">Total</div><div class="v"><%= typeof formatCurrency==='function' ? formatCurrency(0) : 'R$ 0,00' %></div></div>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:10px; align-items:center;">
+          <button form="form-orc" class="btn btn-primary" type="submit">Criar e continuar</button>
+          <a class="btn btn-secondary" href="/orcamentos">Voltar</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <form id="form-orc" class="proposal-form" method="POST" action="/orcamentos/novo">
+    <div class="grid" style="grid-template-columns: 1.6fr 1fr; gap: 12px; margin-top:12px; align-items:start;">
+      <div>
+        <div class="card client-section">
+          <div class="card-body">
+            <div class="section-title">
+              <div>
+                <div class="t">Dados do cliente</div>
+                <div class="s">Informações que aparecem na proposta.</div>
+              </div>
+            </div>
+
+            <div class="grid grid-2">
+              <div>
+                <label>Cliente cadastrado</label>
+                <select name="cliente_id" class="input" id="prodClienteId">
+                  <option value="">— Selecionar —</option>
+                  <% clientesList.forEach((c) => { %>
+                    <option value="<%= c.id %>" data-nome="<%= (c.nome_exibicao || c.nome || ('Cliente #' + c.id)) %>" data-contato="<%= (c.contato || '') %>" data-doc="<%= (c.doc || '') %>" data-email="<%= (c.email || '') %>" data-cep="<%= (c.cep || '') %>" data-logradouro="<%= (c.logradouro || '') %>" data-numero="<%= (c.numero || '') %>" data-complemento="<%= (c.complemento || '') %>" data-bairro="<%= (c.bairro || '') %>" data-cidade="<%= (c.cidade || '') %>" data-uf="<%= (c.uf || '') %>"><%= (c.nome_exibicao || c.nome || ('Cliente #' + c.id)) %></option>
+                  <% }) %>
+                </select>
+                <div class="hint">Se não selecionar, preencha os campos do cliente avulso abaixo.</div>
+              </div>
+
+              <div>
+                <label>Status</label>
+                <select name="status" class="input">
+                  <option value="RASCUNHO">Rascunho</option>
+                  <option value="ENVIADO">Enviado</option>
+                  <option value="APROVADO">Aprovado</option>
+                  <option value="REPROVADO">Reprovado</option>
+                </select>
+              </div>
+
+              <div>
+                <label>Nome do cliente (avulso)</label>
+                <input name="cliente_nome_avulso" id="prodClienteNome" class="input" placeholder="Ex: Amora Maker" />
+              </div>
+
+              <div>
+                <label>WhatsApp</label>
+                <input name="cliente_whatsapp" id="prodClienteWhatsapp" class="input" placeholder="Ex: 11999999999" />
+              </div>
+
+              <div>
+                <label>E-mail</label>
+                <input name="cliente_email" id="prodClienteEmail" class="input" placeholder="cliente@email.com" />
+              </div>
+
+              <div>
+                <label>CPF/CNPJ</label>
+                <input name="cliente_documento" id="prodClienteDocumento" class="input" placeholder="Somente números" />
+              </div>
+
+              <div>
+                <label>Endereço</label>
+                <input name="cliente_endereco" id="prodClienteEndereco" class="input" placeholder="Rua, número, bairro" />
+              </div>
+
+              <div class="grid" style="grid-template-columns: 1fr 110px; gap:10px;">
+                <div>
+                  <label>Cidade</label>
+                  <input name="cliente_cidade" id="prodClienteCidade" class="input" placeholder="Cidade" />
+                </div>
+                <div>
+                  <label>UF</label>
+                  <input name="cliente_uf" id="prodClienteUf" class="input" placeholder="SP" />
+                </div>
+              </div>
+
+              <div>
+                <label>Vendedor</label>
+                <input name="vendedor_nome" class="input" placeholder="Nome do vendedor" />
+              </div>
+
+              <div>
+                <label>Canal</label>
+                <input name="canal_venda" class="input" placeholder="Loja / WhatsApp / ML / Shopee..." />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:12px;">
+          <div class="card-body">
+            <div class="section-title">
+              <div>
+                <div class="t">Condições comerciais</div>
+                <div class="s">Validade, prazo de entrega, pagamento, garantia.</div>
+              </div>
+            </div>
+
+            <div class="grid grid-2">
+              <div>
+                <label>Validade (AAAA-MM-DD)</label>
+                <input name="data_validade" class="input" placeholder="2026-03-10" />
+                <div class="hint">Ex: 2026-03-10</div>
+              </div>
+              <div>
+                <label>Prazo de entrega</label>
+                <input name="prazo_entrega" class="input" placeholder="Ex: 10 a 12 dias úteis" />
+              </div>
+
+              <div>
+                <label>Condições de pagamento</label>
+                <textarea name="condicoes_pagamento" class="input" rows="3" placeholder="Ex: 50% entrada + 50% na entrega. Pix/Cartão." ></textarea>
+              </div>
+
+              <div>
+                <label>Garantia</label>
+                <textarea name="garantia" class="input" rows="3" placeholder="Ex: 90 dias contra defeitos de fabricação."></textarea>
+              </div>
+            </div>
+
+            <div style="margin-top:10px;" class="grid grid-2">
+              <div>
+                <label>Observações da proposta (visível no cliente)</label>
+                <textarea name="observacoes_vendedor" class="input" rows="3" placeholder="Prazos, condições, detalhes, o que está incluso..." ></textarea>
+              </div>
+              <div>
+                <label>Observações internas</label>
+                <textarea name="observacoes_internas" class="input" rows="3" placeholder="Notas internas (não aparecem no cliente)"></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:12px;">
+          <div class="card-body disabled-wrap">
+            <div class="section-title">
+              <div>
+                <div class="t">Layout / Arte (anexo)</div>
+                <div class="s">Anexe PDF ou imagem do layout da proposta.</div>
+              </div>
+            </div>
+            <div class="hint">Disponível após criar o orçamento.</div>
+
+            <div class="disabled-overlay">
+              <div class="msg">
+                <div class="t">Crie o orçamento para anexar layout</div>
+                <div class="s">Depois de criar, você pode anexar PDF/imagem do layout diretamente na proposta.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:12px;">
+          <div class="card-body disabled-wrap items-block">
+            <div class="section-title">
+              <div>
+                <div class="t">Itens da proposta</div>
+                <div class="s">Adicione revenda/estoque e itens sob medida.</div>
+              </div>
+            </div>
+
+            <div class="table-responsive" style="margin-top:8px;">
+              <table class="table proposal-table">
+                <thead>
+                  <tr>
+                    <th style="width:110px;">Tipo</th>
+                    <th>Descrição</th>
+                    <th style="width:90px;" class="text-end">Qtd</th>
+                    <th style="width:110px;">Un</th>
+                    <th style="width:150px;" class="text-end">V. Unit</th>
+                    <th style="width:140px;" class="text-end">Desc</th>
+                    <th style="width:160px;" class="text-end">Total</th>
+                    <th style="width:110px;">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td colspan="8" class="muted">Crie o orçamento para liberar a inclusão de itens.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="disabled-overlay">
+              <div class="msg">
+                <div class="t">Crie o orçamento para adicionar itens</div>
+                <div class="s">Clique em <strong>“Criar e continuar”</strong>. Você será levado para a tela completa com seleção de produtos, itens sob medida e totais automáticos.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card">
+          <div class="card-body">
+            <div class="section-title">
+              <div>
+                <div class="t">Resumo financeiro</div>
+                <div class="s">Totais calculados pelos itens.</div>
+              </div>
+            </div>
+
+            <div class="kpi-grid" style="margin-top:6px;">
+              <div class="kpi-card"><div class="kpi-label">Subtotal</div><div class="kpi-value"><%= typeof formatCurrency==='function' ? formatCurrency(0) : 'R$ 0,00' %></div></div>
+              <div class="kpi-card"><div class="kpi-label">Desconto</div><div class="kpi-value"><%= typeof formatCurrency==='function' ? formatCurrency(0) : 'R$ 0,00' %></div></div>
+              <div class="kpi-card"><div class="kpi-label">Frete</div><div class="kpi-value"><%= typeof formatCurrency==='function' ? formatCurrency(0) : 'R$ 0,00' %></div></div>
+              <div class="kpi-card kpi-card-primary"><div class="kpi-label">Total</div><div class="kpi-value"><%= typeof formatCurrency==='function' ? formatCurrency(0) : 'R$ 0,00' %></div></div>
+            </div>
+
+            <div class="hint" style="margin-top:12px;">Depois de criar, você poderá adicionar itens e enviar PDF/WhatsApp.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const sel = document.getElementById('prodClienteId');
+  if (!sel) return;
+
+  const $ = (id) => document.getElementById(id);
+
+  const nome = $('prodClienteNome');
+  const whats = $('prodClienteWhatsapp');
+  const email = $('prodClienteEmail');
+  const doc = $('prodClienteDocumento');
+  const end = $('prodClienteEndereco');
+  const cidade = $('prodClienteCidade');
+  const uf = $('prodClienteUf');
+
+  function montarEndereco(d){
+    const parts = [];
+    if (d.logradouro) parts.push(d.logradouro);
+    let numComp = '';
+    if (d.numero) numComp += d.numero;
+    if (d.complemento) numComp += (numComp ? ' ' : '') + d.complemento;
+    if (numComp) parts.push(numComp);
+    if (d.bairro) parts.push(d.bairro);
+    return parts.join(', ');
+  }
+
+  async function preencherPorClienteId(clienteId){
+    if (!clienteId) return;
+
+    // Preenche rápido com o que já vem no select
+    const opt = sel.options[sel.selectedIndex];
+    if (opt){
+      const n = opt.getAttribute('data-nome') || '';
+      const c = opt.getAttribute('data-contato') || '';
+      const d = opt.getAttribute('data-doc') || '';
+      const em = opt.getAttribute('data-email') || '';
+      const lg = opt.getAttribute('data-logradouro') || '';
+      const nr = opt.getAttribute('data-numero') || '';
+      const cp = opt.getAttribute('data-complemento') || '';
+      const br = opt.getAttribute('data-bairro') || '';
+      const cd = opt.getAttribute('data-cidade') || '';
+      const u = opt.getAttribute('data-uf') || '';
+
+      const endFast = montarEndereco({ logradouro: lg, numero: nr, complemento: cp, bairro: br });
+      if (nome) nome.value = n;
+      if (whats) whats.value = (whats.value && whats.dataset.userEdited === '1') ? whats.value : c;
+      if (email) email.value = (email.value && email.dataset.userEdited === '1') ? email.value : em;
+      if (doc) doc.value = d;
+      if (end) end.value = (end.value && end.dataset.userEdited === '1') ? end.value : endFast;
+      if (cidade) cidade.value = (cidade.value && cidade.dataset.userEdited === '1') ? cidade.value : cd;
+      if (uf) uf.value = (uf.value && uf.dataset.userEdited === '1') ? uf.value : u;
+    }
+
+    try {
+      const r = await fetch(`/api/clientes/${clienteId}`);
+      if (!r.ok) return;
+      const d = await r.json();
+
+      if (nome) nome.value = d.nome || nome.value || '';
+      if (whats) whats.value = d.whatsapp || whats.value || '';
+      if (email) email.value = d.email || email.value || '';
+      if (doc) doc.value = d.documento || doc.value || '';
+
+      const enderecoTxt = montarEndereco(d);
+      if (end) end.value = enderecoTxt || end.value || '';
+      if (cidade) cidade.value = d.cidade || cidade.value || '';
+      if (uf) uf.value = d.uf || uf.value || '';
+    } catch(e) {}
+  }
+
+  // Marca se usuário editou manualmente (pra não sobrescrever sem querer)
+  [whats, email, doc, end, cidade, uf].forEach((el) => {
+    if (!el) return;
+    el.addEventListener('input', () => { el.dataset.userEdited = '1'; });
+  });
+
+  sel.addEventListener('change', () => {
+    // Ao trocar cliente, preenche sempre (seleção explícita)
+    [nome, whats, email, doc, end, cidade, uf].forEach((el) => { if (el) el.dataset.userEdited = '0'; });
+    preencherPorClienteId(sel.value);
+  });
+
+  // Se já vem com cliente selecionado ao abrir (edição), tenta preencher se campos estiverem vazios
+  if (sel.value && (
+      (nome && !nome.value) ||
+      (whats && !whats.value) ||
+      (email && !email.value) ||
+      (doc && !doc.value) ||
+      (end && !end.value) ||
+      (cidade && !cidade.value) ||
+      (uf && !uf.value)
+  )){
+    preencherPorClienteId(sel.value);
+  }
+});
+</script>

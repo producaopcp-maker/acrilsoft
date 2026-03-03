@@ -1,0 +1,86 @@
+<%
+  const c = cliente || {};
+  const end = endereco || null;
+  const pedidosArr = Array.isArray(pedidos) ? pedidos : [];
+  function v(x){ return (x===null || x===undefined || x==='') ? '-' : String(x); }
+  const nomeEx = c.nome_exibicao || c.nome || c.razao_social || '-';
+%>
+
+<div class="card">
+  <div class="card-head">
+    <div>
+      <div class="h1">Cliente: <%= nomeEx %></div>
+      <div class="muted">Detalhes e histórico de pedidos.</div>
+    </div>
+    <div class="card-actions">
+      <a class="btn btn-outline" href="/clientes/<%= c.id %>/editar">Editar</a>
+      <a class="btn btn-ghost" href="/clientes">Voltar</a>
+    </div>
+  </div>
+
+  <div class="grid" style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+    <div class="card" style="padding:12px;">
+      <div class="h2">Cadastro</div>
+      <div class="muted" style="margin-top:8px;">
+        <div><b>Tipo:</b> <%= v((c.tipo||'').toUpperCase()) %></div>
+        <div><b>Documento:</b> <%= v(c.cpf_cnpj || c.cnpjcpf) %></div>
+        <div><b>Fantasia:</b> <%= v(c.fantasia) %></div>
+        <div><b>E-mail:</b> <%= v(c.email) %></div>
+        <div><b>Telefone:</b> <%= v(c.telefone || c.contato) %></div>
+        <div><b>WhatsApp:</b> <%= v(c.whatsapp) %></div>
+        <div><b>IE:</b> <%= v(c.ie) %> <%= (Number(c.ie_isento||0)===1 ? '(isento)' : '') %></div>
+      </div>
+      <% if (c.observacoes) { %>
+        <div style="margin-top:10px;"><b>Obs:</b> <span class="muted"><%= v(c.observacoes) %></span></div>
+      <% } %>
+    </div>
+
+    <div class="card" style="padding:12px;">
+      <div class="h2">Endereço principal</div>
+      <% if (!end) { %>
+        <div class="muted" style="margin-top:8px;">Sem endereço cadastrado.</div>
+      <% } else { %>
+        <div class="muted" style="margin-top:8px;">
+          <div><b>CEP:</b> <%= v(end.cep) %></div>
+          <div><b>Logradouro:</b> <%= v(end.logradouro) %>, <%= v(end.numero) %> <%= (end.complemento?(' - '+end.complemento):'') %></div>
+          <div><b>Bairro:</b> <%= v(end.bairro) %></div>
+          <div><b>Cidade/UF:</b> <%= v(end.cidade) %>/<%= v(end.uf) %></div>
+          <div><b>IBGE:</b> <%= v(end.codigo_ibge_municipio) %></div>
+        </div>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:12px; padding:12px;">
+    <div class="h2">Pedidos</div>
+    <div class="table-wrap" style="margin-top:8px;">
+      <table class="table">
+        <thead>
+          <tr>
+            <th style="width:90px;">#</th>
+            <th>Cliente no pedido</th>
+            <th>Vendedor</th>
+            <th>Status</th>
+            <th style="width:160px;">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (pedidosArr.length === 0) { %>
+            <tr><td colspan="5" class="muted">Nenhum pedido vinculado.</td></tr>
+          <% } %>
+          <% pedidosArr.forEach(p => { %>
+            <tr>
+              <td><%= p.id %></td>
+              <td><%= v(p.cliente_nome || p.cliente_nome_avulso) %></td>
+              <td><%= v(p.vendedor_nome) %></td>
+              <td><%= v(p.status) %></td>
+              <td>
+                <a class="btn btn-small" href="/pedidos/<%= p.id %>">Abrir pedido</a>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

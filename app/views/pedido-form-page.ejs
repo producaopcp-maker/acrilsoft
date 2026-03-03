@@ -1,0 +1,137 @@
+<%
+  const isEdit = (modo === "editar");
+  const p = pedido || {};
+  const itensArr = Array.isArray(itens) ? itens : [];
+  function val(x){ return (x===null || x===undefined) ? "" : String(x); }
+%>
+
+<div class="card">
+  <div class="card-head">
+    <div>
+      <div class="h1"><%= isEdit ? ("Editar Pedido #" + p.id) : "Novo Pedido" %></div>
+      <div class="muted">Preencha os dados comerciais. Depois você converte em OP e completa o técnico.</div>
+    </div>
+    <div class="card-actions">
+      <a class="btn btn-ghost" href="/pedidos">Voltar</a>
+    </div>
+  </div>
+
+  <form method="post" action="<%= isEdit ? ("/pedidos/" + p.id) : "/pedidos" %>" enctype="multipart/form-data">
+    <div class="row" style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+      <div>
+        <label class="lbl">Cliente *</label>
+        <input class="inp" name="cliente_nome" required value="<%= val(p.cliente_nome) %>">
+      </div>
+      <div>
+        <label class="lbl">Contato do cliente</label>
+        <input class="inp" name="cliente_contato" value="<%= val(p.cliente_contato) %>">
+      </div>
+      <div>
+        <label class="lbl">Vendedor</label>
+        <input class="inp" name="vendedor_nome" value="<%= val(p.vendedor_nome) %>">
+      </div>
+      <div>
+        <label class="lbl">Prazo</label>
+        <input class="inp" type="date" name="prazo_entrega" value="<%= val(p.prazo_entrega) %>">
+      </div>
+      <div>
+        <label class="lbl">Prioridade</label>
+        <select class="inp" name="prioridade">
+          <option value="NORMAL" <%= (val(p.prioridade).toUpperCase()==='NORMAL' || !p.prioridade) ? 'selected':'' %>>NORMAL</option>
+          <option value="URGENTE" <%= (val(p.prioridade).toUpperCase()==='URGENTE') ? 'selected':'' %>>URGENTE</option>
+        </select>
+      </div>
+      <div>
+        <label class="lbl">Status</label>
+        <select class="inp" name="status">
+          <option value="ABERTO" <%= (val(p.status).toUpperCase()==='ABERTO' || !p.status) ? 'selected':'' %>>ABERTO</option>
+          <option value="EM_ANALISE" <%= (val(p.status).toUpperCase()==='EM_ANALISE') ? 'selected':'' %>>EM_ANALISE</option>
+          <option value="CONVERTIDO" <%= (val(p.status).toUpperCase()==='CONVERTIDO') ? 'selected':'' %>>CONVERTIDO</option>
+          <option value="CANCELADO" <%= (val(p.status).toUpperCase()==='CANCELADO') ? 'selected':'' %>>CANCELADO</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="margin-top:12px;">
+      <label class="lbl">Observações do vendedor</label>
+      <textarea class="inp" name="observacoes_vendedor" rows="3" placeholder="Preferências do cliente, contexto, etc..."><%= val(p.observacoes_vendedor) %></textarea>
+    </div>
+
+    <div style="margin-top:12px;">
+      <label class="lbl">Observações internas</label>
+      <textarea class="inp" name="observacoes_internas" rows="3" placeholder="Uso interno (opcional)"><%= val(p.observacoes_internas) %></textarea>
+    </div>
+
+    <div style="margin-top:12px;">
+      <label class="lbl">Anexo (opcional)</label>
+      <input class="inp" type="file" name="anexo" accept="image/*,application/pdf">
+      <% if (isEdit && p.anexo_arquivo) { %>
+        <div class="muted" style="margin-top:6px;">Atual: <a href="/uploads/<%= p.anexo_arquivo %>" target="_blank"><%= p.anexo_arquivo %></a></div>
+      <% } %>
+    </div>
+
+    <div style="margin-top:16px;">
+      <div class="h2">Itens do pedido (opcional)</div>
+      <div class="muted">Os itens serão copiados para a Observação Interna da OP quando você clicar em "Gerar OP".</div>
+
+      <div class="table-wrap" style="margin-top:10px;">
+        <table class="table" id="itensTable">
+          <thead>
+            <tr>
+              <th>Descrição</th>
+              <th style="width:130px;">Qtd</th>
+              <th style="width:120px;">Unidade</th>
+              <th>Obs</th>
+              <th style="width:70px;"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% const linhas = itensArr.length ? itensArr : [{}]; %>
+            <% linhas.forEach((it, idx) => { %>
+              <tr>
+                <td><input class="inp" name="item_descricao" value="<%= val(it.descricao) %>" placeholder="ex: Troféu acrílico"></td>
+                <td><input class="inp" name="item_quantidade" value="<%= val(it.quantidade) %>" placeholder="0"></td>
+                <td><input class="inp" name="item_unidade" value="<%= val(it.unidade || 'UN') %>" placeholder="UN"></td>
+                <td><input class="inp" name="item_observacao" value="<%= val(it.observacao) %>" placeholder=""></td>
+                <td><button class="btn btn-small btn-danger" type="button" onclick="removerLinha(this)">X</button></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="margin-top:10px;">
+        <button class="btn" type="button" onclick="adicionarLinha()">+ Adicionar item</button>
+      </div>
+    </div>
+
+    <div style="margin-top:18px; display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="btn btn-primary" type="submit"><%= isEdit ? "Salvar alterações" : "Criar pedido" %></button>
+      <% if (isEdit) { %>
+        <a class="btn btn-ghost" href="/pedidos/<%= p.id %>">Ver pedido</a>
+      <% } %>
+    </div>
+  </form>
+</div>
+
+<script>
+function adicionarLinha(){
+  const tbody = document.querySelector("#itensTable tbody");
+  const tr = document.createElement("tr");
+  tr.innerHTML = `
+    <td><input class="inp" name="item_descricao" placeholder="ex: Troféu acrílico"></td>
+    <td><input class="inp" name="item_quantidade" placeholder="0"></td>
+    <td><input class="inp" name="item_unidade" value="UN" placeholder="UN"></td>
+    <td><input class="inp" name="item_observacao" placeholder=""></td>
+    <td><button class="btn btn-small btn-danger" type="button" onclick="removerLinha(this)">X</button></td>
+  `;
+  tbody.appendChild(tr);
+}
+function removerLinha(btn){
+  const tr = btn.closest("tr");
+  if (!tr) return;
+  const tbody = tr.parentElement;
+  tr.remove();
+  if (tbody.children.length === 0) adicionarLinha();
+}
+</script>

@@ -1,0 +1,111 @@
+<div class="page">
+  <div class="card">
+    <%- include('components/page-header', {
+      title: 'Fiscal (NF-e)',
+      status: 'ONLINE',
+      subtitle: 'Configure emitente, certificado A1, ambiente e numeração. (Fase 2: emissão real via Serviço Fiscal)',
+      meta: [],
+      primaryActions: [],
+      secondaryActions: []
+    }) %>
+  </div>
+
+  <% if (flash && flash.error) { %>
+    <div class="alert alert-danger"><%= flash.error %></div>
+  <% } %>
+  <% if (flash && flash.success) { %>
+    <div class="alert alert-success"><%= flash.success %></div>
+  <% } %>
+
+  <form method="post" action="/financeiro/fiscal/salvar" enctype="multipart/form-data" class="card" style="padding:16px;">
+    <div class="h2">Emitente</div>
+    <div class="grid" style="display:grid; grid-template-columns: repeat(4, 1fr); gap:12px; margin-top:10px;">
+      <div><div class="lbl">CNPJ</div><input class="inp" name="emitente_cnpj" value="<%= (emitente?.cnpj || '') %>"></div>
+      <div style="grid-column: span 2;"><div class="lbl">Razão Social</div><input class="inp" name="emitente_razao" value="<%= (emitente?.razao_social || '') %>"></div>
+      <div><div class="lbl">Fantasia</div><input class="inp" name="emitente_fantasia" value="<%= (emitente?.fantasia || '') %>"></div>
+
+      <div><div class="lbl">IE</div><input class="inp" name="emitente_ie" value="<%= (emitente?.ie || '') %>"></div>
+      <div><div class="lbl">IM</div><input class="inp" name="emitente_im" value="<%= (emitente?.im || '') %>"></div>
+      <div><div class="lbl">CRT</div><input class="inp" name="emitente_crt" placeholder="1/2/3" value="<%= (emitente?.crt || '') %>"></div>
+      <div><div class="lbl">CNAE</div><input class="inp" name="emitente_cnae" value="<%= (emitente?.cnae || '') %>"></div>
+
+      <div><div class="lbl">CEP</div><input class="inp" name="emitente_cep" value="<%= (emitente?.cep || '') %>"></div>
+      <div style="grid-column: span 2;"><div class="lbl">Logradouro</div><input class="inp" name="emitente_logradouro" value="<%= (emitente?.logradouro || '') %>"></div>
+      <div><div class="lbl">Número</div><input class="inp" name="emitente_numero" value="<%= (emitente?.numero || '') %>"></div>
+
+      <div><div class="lbl">Bairro</div><input class="inp" name="emitente_bairro" value="<%= (emitente?.bairro || '') %>"></div>
+      <div><div class="lbl">Cidade</div><input class="inp" name="emitente_cidade" value="<%= (emitente?.cidade || '') %>"></div>
+      <div><div class="lbl">UF</div><input class="inp" name="emitente_uf" value="<%= (emitente?.uf || '') %>"></div>
+      <div><div class="lbl">Cód. IBGE Município</div><input class="inp" name="emitente_ibge" value="<%= (emitente?.codigo_ibge_municipio || '') %>"></div>
+    </div>
+
+    <div class="h2" style="margin-top:18px;">Certificado A1</div>
+    <div class="grid" style="display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; margin-top:10px;">
+      <div style="grid-column: span 2;">
+        <div class="lbl">Arquivo (.pfx/.p12)</div>
+        <input class="inp" type="file" name="certificado">
+        <div class="muted" style="margin-top:6px;">Atual: <%= (cfg55?.certificado_path || '—') %></div>
+      </div>
+      <div>
+        <div class="lbl">Senha</div>
+        <input class="inp" name="certificado_senha" type="password" value="<%= (cfg55?.certificado_senha || '') %>">
+      </div>
+      <div>
+        <div class="lbl">URL do Serviço Fiscal</div>
+        <input class="inp" name="service_url" placeholder="http://acrilsoft-fiscal.railway.internal:3333" value="<%= (cfg55?.service_url || (process?.env?.FISCAL_SERVICE_URL || '') || '') %>">
+        <div class="muted" style="margin-top:6px;">No Railway, use o Private Domain do service <b>acrilsoft-fiscal</b>.</div>
+      </div>
+    </div>
+
+    <div class="h2" style="margin-top:18px;">Configurações NF-e (55)</div>
+    <div class="grid" style="display:grid; grid-template-columns: repeat(4, 1fr); gap:12px; margin-top:10px;">
+      <div>
+        <div class="lbl">Ambiente</div>
+        <select class="inp" name="nfe_ambiente">
+          <option value="2" <%= (cfg55?.ambiente==2?'selected':'') %>>Homologação</option>
+          <option value="1" <%= (cfg55?.ambiente==1?'selected':'') %>>Produção</option>
+        </select>
+      </div>
+      <div><div class="lbl">Série</div><input class="inp" name="nfe_serie" value="<%= (cfg55?.serie ?? 1) %>"></div>
+      <div><div class="lbl">Próximo número</div><input class="inp" name="nfe_proximo" value="<%= (cfg55?.proximo_numero ?? 1) %>"></div>
+      <div><div class="lbl">UF (padrão)</div><input class="inp" name="nfe_uf" value="<%= (cfg55?.uf || emitente?.uf || '') %>"></div>
+    </div>
+
+    <div style="display:flex; gap:10px; margin-top:18px;">
+      <button class="btn btn-primary" type="submit">Salvar</button>
+      <a class="btn" href="/financeiro/dashboard">Voltar</a>
+    </div>
+  </form>
+
+  <div class="card" style="padding:16px; margin-top:14px;">
+    <div class="h2">Documentos recentes</div>
+    <div class="muted">Fase 1 registra documentos ao emitir pelo pedido (ainda sem envio à SEFAZ).</div>
+
+    <table class="tbl" style="margin-top:10px;">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Pedido</th>
+          <th>Modelo</th>
+          <th>Série/Número</th>
+          <th>Status</th>
+          <th>Chave</th>
+          <th>Data</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% (docs || []).forEach(d => { %>
+          <tr>
+            <td><%= d.id %></td>
+            <td><a href="/pedidos/<%= d.pedido_id %>"><%= d.pedido_id %></a></td>
+            <td><%= d.modelo %></td>
+            <td><%= d.serie %>/<%= d.numero %></td>
+            <td><%= d.status %></td>
+            <td style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;"><%= d.chave || '—' %></td>
+            <td><%= d.criado_em %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>

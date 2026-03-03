@@ -1,0 +1,47 @@
+<div class="card">
+  <div class="h1">Movimentação</div>
+  <div class="muted" style="margin: 6px 0 12px 0;">
+    <b><%= produto.descricao %></b> (<%= produto.codigo_interno || "sem código" %>)
+    • <%= produto.espessura_mm %>mm • <%= produto.cor %>
+    • Estoque atual: <b><%= produto.estoque_atual %></b> chapas
+    <% const areaPorChapa = (Number(produto.largura_mm) * Number(produto.altura_mm)) / 1000000; %>
+    • <b><%= (Number(produto.estoque_atual) * areaPorChapa).toFixed(2) %></b> m²
+  </div>
+
+  <form class="form" method="post" action="/movimentar/<%= produto.id %>">
+    <div class="grid">
+      <label>Tipo
+        <select name="tipo" required>
+          <option value="ENTRADA">ENTRADA</option>
+          <option value="SAIDA">SAÍDA</option>
+          <option value="AJUSTE">AJUSTE (define o estoque)</option>
+        </select>
+      </label>
+      <label>Quantidade (chapas)
+        <input id="qtd" name="quantidade" type="number" min="1" required />
+        <div class="muted" id="qtdHint" style="margin-top:4px;">Equivale a 0.00 m²</div>
+      </label>
+      <label>Observação<input name="observacao" placeholder="Ex: NF 123 / Pedido #45 / Inventário" /></label>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-primary" type="submit">Confirmar</button>
+      <a class="btn btn-ghost" href="/estoque">Voltar</a>
+    </div>
+  </form>
+</div>
+
+<script>
+  (function(){
+    const area = <%= JSON.stringify((Number(produto.largura_mm) * Number(produto.altura_mm)) / 1000000) %>;
+    const input = document.getElementById('qtd');
+    const hint = document.getElementById('qtdHint');
+    function render(){
+      const v = Number(input.value || 0);
+      const m2 = v * area;
+      hint.textContent = `Equivale a ${m2.toFixed(2)} m² (${area.toFixed(2)} m² por chapa)`;
+    }
+    input.addEventListener('input', render);
+    render();
+  })();
+</script>

@@ -1,0 +1,129 @@
+<%
+  const fmtBRL = (v) => (Number(v||0)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmtDate = (iso) => {
+    if (!iso) return '';
+    try {
+      const d = new Date(String(iso).replace(' ', 'T') + 'Z');
+      return d.toLocaleDateString('pt-BR');
+    } catch (e) { return iso; }
+  };
+  const statusBadge = (s) => {
+    const v = String(s||'').toUpperCase();
+    if (v === 'APROVADO') return 'badge success';
+    if (v === 'ENVIADO') return 'badge warn';
+    if (v === 'CANCELADO') return 'badge danger';
+    return 'badge warn';
+  };
+%>
+
+<div class="card">
+  <div class="card-head" style="align-items:flex-start;">
+    <div>
+      <div class="h1">Orçamentos de Brindes</div>
+      <div class="muted">Crie, envie e aprove para gerar o Pedido automaticamente.</div>
+      <div class="muted" style="margin-top:6px;">
+        <span id="orcResumo" class="badge">0 resultados</span>
+      </div>
+    </div>
+    <div class="row gap" style="flex-wrap:wrap; justify-content:flex-end;">
+      <div class="row gap" style="flex-wrap:wrap;">
+        <input id="q" class="input" style="min-width:260px" placeholder="Buscar por cliente, #, status, pedido…" />
+        <select id="status" class="select">
+          <option value="">Todos status</option>
+          <option value="RASCUNHO">Rascunho</option>
+          <option value="ENVIADO">Enviado</option>
+          <option value="APROVADO">Aprovado</option>
+          <option value="CANCELADO">Cancelado</option>
+        </select>
+      </div>
+      <a class="btn" href="/brindes/orcamentos/novo">Novo Orçamento</a>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table class="table" id="orcTable">
+      <thead>
+        <tr>
+          <th style="width:80px">#</th>
+          <th>Cliente</th>
+          <th style="width:120px">Criado</th>
+          <th style="width:130px">Status</th>
+          <th style="width:110px">Validade</th>
+          <th class="right" style="width:140px">Total</th>
+          <th style="width:130px">Pedido</th>
+          <th class="right" style="width:320px">Ações</th>
+        </tr>
+      </thead>
+      <tbody id="orcTbody">
+        <% if (!orcamentos || orcamentos.length === 0) { %>
+          <tr><td colspan="8" class="muted">Nenhum orçamento criado.</td></tr>
+        <% } %>
+        <% (orcamentos || []).forEach((o) => { %>
+          <tr class="orc-row"
+              data-q="<%= String([o.id, o.cliente_nome, o.status, o.pedido_id].filter(Boolean).join(' ')).toLowerCase() %>"
+              data-status="<%= String(o.status||'').toUpperCase() %>">
+            <td>
+              <a href="/brindes/orcamentos/<%= o.id %>" class="link"><%= o.id %></a>
+            </td>
+            <td>
+              <div style="font-weight:600"><%= o.cliente_nome || ('Cliente #' + (o.cliente_id||'')) %></div>
+              <% if (o.cliente_whatsapp) { %>
+                <div class="muted" style="font-size:12px"><%= o.cliente_whatsapp %></div>
+              <% } %>
+            </td>
+            <td><span class="muted"><%= fmtDate(o.created_at) %></span></td>
+            <td><span class="<%= statusBadge(o.status) %>"><%= (o.status || 'RASCUNHO') %></span></td>
+            <td><span class="muted"><%= o.validade_em_dias %> dias</span></td>
+            <td class="right">R$ <%= fmtBRL(o.total) %></td>
+            <td>
+              <% if (o.pedido_id) { %>
+                <a class="badge" href="/pedidos/<%= o.pedido_id %>">Pedido #<%= o.pedido_id %></a>
+              <% } else { %>
+                <span class="muted">—</span>
+              <% } %>
+            </td>
+            <td class="right">
+              <div class="row gap" style="justify-content:flex-end; flex-wrap:wrap;">
+                <a class="btn btn-ghost" href="/brindes/orcamentos/<%= o.id %>">Abrir</a>
+                <a class="btn btn-ghost" href="/brindes/orcamentos/<%= o.id %>/pdf" target="_blank" rel="noopener">PDF</a>
+                <% if (o.cliente_whatsapp) { %>
+                  <a class="btn btn-ghost" href="/brindes/orcamentos/<%= o.id %>/whatsapp" target="_blank" rel="noopener">WhatsApp</a>
+                <% } %>
+                <form method="POST" action="/brindes/orcamentos/<%= o.id %>/duplicar" style="display:inline">
+                  <button class="btn btn-ghost" type="submit" onclick="return confirm('Duplicar o orçamento #<%= o.id %>?')">Duplicar</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  (function(){
+    const q = document.getElementById('q');
+    const s = document.getElementById('status');
+    const rows = Array.from(document.querySelectorAll('.orc-row'));
+    const resumo = document.getElementById('orcResumo');
+
+    function apply(){
+      const qv = (q.value||'').trim().toLowerCase();
+      const sv = (s.value||'').trim().toUpperCase();
+      let vis = 0;
+      rows.forEach(r => {
+        const okQ = !qv || (r.dataset.q || '').includes(qv);
+        const okS = !sv || (r.dataset.status || '') === sv;
+        const show = okQ && okS;
+        r.style.display = show ? '' : 'none';
+        if (show) vis++;
+      });
+      if (resumo) resumo.textContent = vis + ' resultado' + (vis === 1 ? '' : 's');
+    }
+
+    if (q) q.addEventListener('input', apply);
+    if (s) s.addEventListener('change', apply);
+    apply();
+  })();
+</script>

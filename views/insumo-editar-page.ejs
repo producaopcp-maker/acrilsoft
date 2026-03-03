@@ -1,0 +1,24 @@
+
+<div class="card">
+  <div class="h1">Editar insumo</div>
+  <div class="muted">O estoque atual é alterado pelas movimentações.</div>
+
+  <form class="form" method="post" action="/insumos/<%= insumo.id %>">
+    <div class="grid">
+      <label>Nome<input name="nome" value="<%= insumo.nome %>" required /></label>
+      <label>Categoria<input name="categoria" value="<%= insumo.categoria || '' %>" /></label>
+      <label>Unidade
+        <select name="unidade" required>
+          <option value="un" <%= (insumo.unidade==='un') ? 'selected' : '' %>>un (unidade)</option>
+          <option value="ml" <%= (insumo.unidade==='ml') ? 'selected' : '' %>>ml (metro linear)</option>
+          <option value="m" <%= (insumo.unidade==='m') ? 'selected' : '' %>>m (metros)</option>
+        </select>
+      </label>
+      <label>Estoque mínimo<input name="estoque_minimo" type="number" value="<%= insumo.estoque_minimo || 0 %>" /></label>
+    </div>
+    <div style="display:flex; gap:10px; margin-top:12px;">
+      <button class="btn" type="submit">Salvar</button>
+      <a class="btn btn-ghost" href="/insumos">Voltar</a>
+    </div>
+  </form>
+</div>

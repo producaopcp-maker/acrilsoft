@@ -1,0 +1,50 @@
+
+<div class="card">
+  <div class="card-head">
+    <div>
+      <div class="h1">Estoque de Brindes</div>
+      <div class="muted">Pesquise por nome ou categoria</div>
+    </div>
+    <form class="search" method="get" action="/brindes/estoque">
+      <input name="q" value="<%= q || '' %>" placeholder="Buscar..." class="input"/>
+      <button class="btn" type="submit">Buscar</button>
+      <a class="btn btn-ghost" href="/brindes/novo">Novo</a>
+    </form>
+  </div>
+
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Brinde</th>
+          <th>Categoria</th>
+          <th>Unid.</th>
+          <th>Estoque</th>
+          <th>Mín.</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% (brindes || []).forEach(b => { %>
+          <tr class="<%= b.baixo ? 'row-warn' : '' %>">
+            <td><b><%= b.nome %></b></td>
+            <td><%= b.categoria || '-' %></td>
+            <td><%= b.unidade || 'UN' %></td>
+            <td><%= b.estoque_atual || 0 %></td>
+            <td><%= b.estoque_minimo || 0 %></td>
+            <td style="white-space:nowrap;">
+              <a class="btn btn-ghost" href="/brindes/movimentar/<%= b.id %>">Movimentar</a>
+            </td>
+          </tr>
+        <% }) %>
+        <% if (!brindes || brindes.length === 0) { %>
+          <tr><td colspan="6" class="muted">Nenhum brinde cadastrado.</td></tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card-foot">
+    <a class="btn btn-ghost" href="/brindes/historico">Ver histórico</a>
+  </div>
+</div>

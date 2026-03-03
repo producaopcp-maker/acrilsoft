@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Login • Acrilsoft</title>
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    body{min-height:100vh; display:flex; align-items:center; justify-content:center; background:var(--bg);}
+    .login-card{width:420px; max-width:92vw;}
+    .login-logo{display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:14px;}
+    .login-logo img{height:40px;}
+  </style>
+</head>
+<body>
+  <div class="card login-card">
+    <div class="login-logo">
+      <img src="/assets/acrilsoft-brand.png" alt="Acrilsoft" onerror="this.style.display='none'" />
+      <strong style="font-size:18px"></strong>
+    </div>
+
+    <h2 style="margin:0 0 6px 0">Entrar</h2>
+    <p class="muted" style="margin-top:0">Acesse com seu usuário e senha.</p>
+
+    <% if (typeof error !== 'undefined' && error) { %>
+      <div class="toast toast-error" style="position:static; margin:10px 0;">
+        <strong>Erro</strong>
+        <span><%= error %></span>
+      </div>
+    <% } %>
+
+    <form method="POST" action="/login" style="display:grid; gap:10px;">
+      <div>
+        <label class="label">Usuário</label>
+        <input class="input" name="usuario" required autocomplete="username" />
+      </div>
+      <div>
+        <label class="label">Senha</label>
+        <input class="input" name="senha" type="password" required autocomplete="current-password" />
+      </div>
+      <button class="btn btn-primary" type="submit">Entrar</button>
+    </form>
+
+    <div style="margin-top:10px; text-align:center">
+      <a class="muted" href="/reset-admin">Não consegue logar? Reset do admin</a>
+    </div>
+
+    <div class="muted" style="margin-top:12px; font-size:12px">
+      Dica: se for o primeiro acesso, troque a senha.
+    </div>
+  </div>
+</body>
+</html>

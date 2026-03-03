@@ -1,0 +1,244 @@
+<div class="card">
+  <div class="h1">Criar Ordem de Produção</div>
+  <div class="muted" style="margin-bottom:10px;">O código da OP é gerado automaticamente (ex: OP-2026-0001).</div>
+
+  <form class="form" method="post" action="/ops">
+    <div class="grid">
+      <label>Cliente (opcional)
+        <input name="cliente" placeholder="Ex: Fulano / Empresa X" />
+      </label>
+
+      <label>Pedido de venda
+        <input name="pedido_venda" placeholder="Ex: PV-10293 / Pedido 456" />
+      </label>
+
+      <label>Produto final (o que será feito)
+        <input name="produto_final" placeholder="Ex: Letreiro AMORA 80cm / Display / Placa..." required />
+      </label>
+
+      <label>Quantidade do produto final
+        <input name="quantidade_final" type="number" min="1" placeholder="Ex: 10" required />
+      </label>
+
+<label>Espessura do material (mm)
+  <input name="material_espessura_mm" type="number" min="0" step="1" placeholder="Ex: 3" />
+</label>
+
+<label>Cor do material
+  <input name="material_cor" placeholder="Ex: Cristal / Preto / Branco..." />
+</label>
+
+
+      <label>Data de abertura
+        <input type="date" name="data_abertura" value="<%= new Date().toISOString().slice(0,10) %>" readonly />
+      </label>
+
+      <label>Data para entrega
+        <input type="date" name="data_entrega" required />
+      </label>
+
+      <label>Prioridade
+        <select name="prioridade">
+          <option value="BAIXA">BAIXA</option>
+          <option value="NORMAL" selected>NORMAL</option>
+          <option value="ALTA">ALTA</option>
+          <option value="URGENTE">URGENTE</option>
+        </select>
+      </label>
+
+      <label>Observação interna (opcional)
+        <textarea name="observacao_interna" class="input" rows="2" placeholder="Ex: cuidado com película, conferir medidas no desenho..."></textarea>
+      </label>
+
+      <label>Observação do cliente (opcional)
+        <textarea name="observacao_cliente" class="input" rows="2" placeholder="Ex: entrega sexta, sem cantos vivos..."></textarea>
+      </label>
+    </div>
+
+
+
+<div class="divider"></div>
+<h2 class="h2">Brindes (opcional)</h2>
+<p class="muted">Selecione brindes para esta OP. A baixa no estoque será feita quando a OP for marcada como <b>FINALIZADA</b>.</p>
+
+<div id="brindesWrap">
+  <div class="pecas-header" style="display:grid; grid-template-columns: 1.2fr 110px 44px; gap:12px; align-items:center;">
+    <div class="muted">Brinde</div>
+    <div class="muted">Qtd</div>
+    <div></div>
+  </div>
+
+  <div id="brindesList">
+    <div class="brinde-row" style="display:grid; grid-template-columns: 1.2fr 110px 44px; gap:12px; align-items:center; margin-top:10px;">
+      <select name="brinde_id" class="input">
+        <option value="">-- selecione --</option>
+        <% (brindesCatalogo || []).forEach(b => { %>
+          <option value="<%= b.id %>"><%= b.nome %> (<%= b.unidade || 'UN' %>)</option>
+        <% }) %>
+      </select>
+      <input name="brinde_qtd" type="number" min="1" value="1" class="input" />
+      <button type="button" class="btn btn-ghost" style="height:40px; width:44px;" onclick="removeBrindeRow(this)">×</button>
+    </div>
+  </div>
+
+  <div id="brindeRowTemplate" style="display:none;">
+    <div class="brinde-row" style="display:grid; grid-template-columns: 1.2fr 110px 44px; gap:12px; align-items:center; margin-top:10px;">
+      <select name="brinde_id" class="input">
+        <option value="">-- selecione --</option>
+        <% (brindesCatalogo || []).forEach(b => { %>
+          <option value="<%= b.id %>"><%= b.nome %> (<%= b.unidade || 'UN' %>)</option>
+        <% }) %>
+      </select>
+      <input name="brinde_qtd" type="number" min="1" value="1" class="input" />
+      <button type="button" class="btn btn-ghost" style="height:40px; width:44px;" onclick="removeBrindeRow(this)">×</button>
+    </div>
+  </div>
+
+  <button type="button" class="btn btn-ghost" style="margin-top:10px;" onclick="addBrindeRow()">+ Adicionar brinde</button>
+</div>
+
+<script>
+  function addBrindeRow(){
+    const tpl = document.getElementById('brindeRowTemplate');
+    const list = document.getElementById('brindesList');
+    const node = tpl.firstElementChild.cloneNode(true);
+    // limpa valores
+    node.querySelector('select').value = '';
+    node.querySelector('input[name="brinde_qtd"]').value = 1;
+    list.appendChild(node);
+  }
+
+  function removeBrindeRow(btn){
+    const row = btn.closest('.brinde-row');
+    if (!row) return;
+    const rows = document.querySelectorAll('#brindesList .brinde-row');
+    if (rows.length <= 1) {
+      row.querySelector('select').value = '';
+      row.querySelector('input[name="brinde_qtd"]').value = 1;
+      return;
+    }
+    row.remove();
+  }
+</script>
+
+
+<div class="divider"></div>
+<h2 class="h2">Peças (opcional)</h2>
+<p class="muted">Informe as medidas de cada peça (ex.: Corpo 10x20, Base 30x30). Você pode adicionar várias.</p>
+
+<div id="pecasWrap">
+  <div class="pecas-header" style="display:grid; grid-template-columns: 1.2fr 1fr 110px 44px; gap:12px; align-items:center;">
+    <div class="muted">Peça</div>
+    <div class="muted">Medidas</div>
+    <div class="muted">Qtd</div>
+    <div></div>
+  </div>
+
+  <div id="pecasList">
+    <div class="peca-row" style="display:grid; grid-template-columns: 1.2fr 1fr 110px 44px; gap:12px; align-items:center; margin-top:10px;">
+      <input name="peca_nome" class="input" placeholder="Ex: Corpo" />
+      <input name="peca_medidas" class="input" placeholder="Ex: 10x20" />
+      <input name="peca_qtd" type="number" min="1" value="1" class="input" />
+      <button type="button" class="btn btn-ghost" style="height:40px; width:44px;" onclick="removePecaRow(this)">×</button>
+    </div>
+  </div>
+
+  <button type="button" class="btn btn-ghost" style="margin-top:10px;" onclick="addPecaRow()">+ Adicionar peça</button>
+</div>
+
+<script>
+  function addPecaRow(){
+    const list = document.getElementById('pecasList');
+    const row = document.createElement('div');
+    row.className = 'peca-row';
+    row.setAttribute('style','display:grid; grid-template-columns: 1.2fr 1fr 110px 44px; gap:12px; align-items:center; margin-top:10px;');
+    row.innerHTML = `
+      <input name="peca_nome" class="input" placeholder="Ex: Corpo" />
+      <input name="peca_medidas" class="input" placeholder="Ex: 10x20" />
+      <input name="peca_qtd" type="number" min="1" value="1" class="input" />
+      <button type="button" class="btn btn-ghost" style="height:40px; width:44px;" onclick="removePecaRow(this)">×</button>
+    `;
+    list.appendChild(row);
+  }
+
+  function removePecaRow(btn){
+    const row = btn.closest('.peca-row');
+    if (row) row.remove();
+  }
+</script>
+
+<div class="divider"></div>
+    <h2 class="h2">Insumos (opcional)</h2>
+    <p class="muted">Selecione insumos consumidos já na abertura da OP. Isso vai dar baixa no estoque automaticamente.</p>
+
+    <div id="insumosRows" class="grid" style="grid-template-columns: 1fr 120px 80px; gap: 10px;">
+      <div class="muted">Insumo</div>
+      <div class="muted">Qtd.</div>
+      <div></div>
+
+      <div>
+        <select name="insumo_id" class="input">
+          <option value="">-- selecione --</option>
+          <% (insumos || []).forEach(function(i){ %>
+            <option value="<%= i.id %>"><%= i.nome %> (<%= i.unidade || 'un' %>) - estoque: <%= i.estoque_atual ?? 0 %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div><input name="insumo_qtd" type="number" step="0.01" min="0" class="input" placeholder="0" /></div>
+      <div><button type="button" class="btn btn-ghost" onclick="addInsumoRow()">+</button></div>
+    </div>
+
+    <script>
+      function addInsumoRow(){
+        const wrap = document.getElementById('insumosRows');
+        const selectHtml = `<div>  <select name="insumo_id" class="input">    <option value="">-- selecione --</option>    <% (insumos || []).forEach(function(i){ %>      <option value="<%= i.id %>"><%= i.nome %> (<%= i.unidade || 'un' %>) - estoque: <%= i.estoque_atual ?? 0 %></option>    <% }) %>  </select></div>`;
+        const qtyHtml = '<div><input name="insumo_qtd" type="number" step="0.01" min="0" class="input" placeholder="0" /></div>';
+        const btnHtml = '<div><button type="button" class="btn btn-ghost" onclick="this.parentElement.previousElementSibling.previousElementSibling.remove(); this.parentElement.previousElementSibling.remove(); this.parentElement.remove();">-</button></div>';
+        wrap.insertAdjacentHTML('beforeend', selectHtml + qtyHtml + btnHtml);
+      }
+    </script>
+
+
+    <div class="divider"></div>
+    <h2 class="h2">Serviços (opcional)</h2>
+    <p class="muted">Adicione serviços como corte, impressão, polimento etc. (não altera estoque).</p>
+
+    <div id="servicosRows" class="grid" style="grid-template-columns: 1fr 110px 120px 1fr 80px; gap: 10px;">
+      <div class="muted">Serviço</div>
+      <div class="muted">Qtd.</div>
+      <div class="muted">Preço</div>
+      <div class="muted">Obs.</div>
+      <div></div>
+
+      <div>
+        <select name="servico_id" class="input">
+          <option value="">-- selecione --</option>
+          <% (servicosCatalogo || []).forEach(function(s){ %>
+            <option value="<%= s.id %>"><%= s.nome %> (<%= s.unidade || 'un' %>)</option>
+          <% }) %>
+        </select>
+      </div>
+      <div><input name="servico_qtd" type="number" step="0.01" min="0" class="input" placeholder="1" /></div>
+      <div><input name="servico_preco" type="number" step="0.01" min="0" class="input" placeholder="0,00" /></div>
+      <div><input name="servico_obs" class="input" placeholder="Observação" /></div>
+      <div><button type="button" class="btn btn-ghost" onclick="addServicoRow()">+</button></div>
+    </div>
+
+    <script>
+      function addServicoRow(){
+        const wrap = document.getElementById('servicosRows');
+        const selectHtml = `<div>  <select name="servico_id" class="input">    <option value="">-- selecione --</option>    <% (servicosCatalogo || []).forEach(function(s){ %>      <option value="<%= s.id %>"><%= s.nome %> (<%= s.unidade || 'un' %>)</option>    <% }) %>  </select></div>`;
+        const qtdHtml = '<div><input name="servico_qtd" type="number" step="0.01" min="0" class="input" placeholder="1" /></div>';
+        const precoHtml = '<div><input name="servico_preco" type="number" step="0.01" min="0" class="input" placeholder="0,00" /></div>';
+        const obsHtml = '<div><input name="servico_obs" class="input" placeholder="Observação" /></div>';
+        const btnHtml = '<div><button type="button" class="btn btn-ghost" onclick="this.parentElement.previousElementSibling.remove(); this.parentElement.previousElementSibling.previousElementSibling.remove(); this.parentElement.previousElementSibling.previousElementSibling.previousElementSibling.remove(); this.parentElement.previousElementSibling.previousElementSibling.previousElementSibling.previousElementSibling.remove(); this.parentElement.remove();">-</button></div>';
+        wrap.insertAdjacentHTML('beforeend', selectHtml + qtdHtml + precoHtml + obsHtml + btnHtml);
+      }
+    </script>
+
+<div class="actions">
+      <button class="btn btn-primary" type="submit">Criar OP</button>
+      <a class="btn btn-ghost" href="/ops">Cancelar</a>
+    </div>
+  </form>
+</div>

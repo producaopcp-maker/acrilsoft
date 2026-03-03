@@ -1,0 +1,69 @@
+<div class="page-head">
+  <div>
+    <h1 style="margin:0"><%= pageTitle %></h1>
+    <div class="muted"><%= pageSubtitle %></div>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-outline" href="/usuarios">Voltar</a>
+  </div>
+</div>
+
+<div class="card">
+  <% if (typeof error !== 'undefined' && error) { %>
+    <div class="toast toast-error" style="position:static; margin:10px 0;">
+      <strong>Erro</strong>
+      <span><%= error %></span>
+    </div>
+  <% } %>
+
+  <form method="POST" action="<%= action %>" style="display:grid; gap:12px; max-width:520px">
+    <div>
+      <label class="label">Nome</label>
+      <input class="input" name="nome" required value="<%= userEdit ? userEdit.nome : '' %>">
+    </div>
+
+    <div>
+      <label class="label">Usuário</label>
+      <input class="input" name="usuario" required value="<%= userEdit ? userEdit.usuario : '' %>" <%= userEdit ? 'readonly' : '' %>>
+      <% if (userEdit) { %><div class="muted" style="font-size:12px; margin-top:4px">O usuário (login) não pode ser alterado.</div><% } %>
+    </div>
+
+    <div>
+      <label class="label">Perfil</label>
+      <select class="input" name="role" required>
+        <% roles.forEach(r => { %>
+          <option value="<%= r %>" <%= (userEdit && userEdit.role===r) ? 'selected' : '' %>><%= r %></option>
+        <% }) %>
+      </select>
+    
+    <div>
+      <label class="label">Acesso por módulo</label>
+      <div class="muted" style="font-size:12px; margin-bottom:8px">
+        Se nenhum módulo for selecionado, valerão as permissões padrão do perfil (role). Se selecionar, o acesso ficará limitado aos módulos marcados.
+      </div>
+      <div style="display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:8px">
+        <% 
+          const selected = (userEdit && (userEdit.modulosArr || userEdit.modulos)) ? (userEdit.modulosArr || userEdit.modulos) : [];
+        %>
+        <% moduleOptions.forEach(m => { %>
+          <label style="display:flex; gap:8px; align-items:center; padding:8px 10px; border:1px solid var(--border); border-radius:10px;">
+            <input type="checkbox" name="modulos" value="<%= m.key %>" <%= (selected && selected.includes(m.key)) ? 'checked' : '' %>>
+            <span><%= m.label %></span>
+          </label>
+        <% }) %>
+      </div>
+    </div>
+
+</div>
+
+    <% if (!userEdit) { %>
+      <div>
+        <label class="label">Senha</label>
+        <input class="input" name="senha" type="password" required>
+      </div>
+      <div class="muted" style="font-size:12px">A senha será criptografada (hash) no banco.</div>
+    <% } %>
+
+    <button class="btn btn-primary" type="submit">Salvar</button>
+  </form>
+</div>

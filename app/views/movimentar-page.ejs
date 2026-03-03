@@ -1,0 +1,27 @@
+<div class="card">
+  <div class="h1">Movimentação</div>
+  <div class="muted" style="margin: 6px 0 12px 0;">
+    <b><%= produto.descricao %></b> (<%= produto.codigo_interno || "sem código" %>)
+    • <%= produto.espessura_mm %>mm • <%= produto.cor %>
+    • Estoque atual: <b><%= produto.estoque_atual %></b>
+  </div>
+
+  <form class="form" method="post" action="/movimentar/<%= produto.id %>">
+    <div class="grid">
+      <label>Tipo
+        <select name="tipo" required>
+          <option value="ENTRADA">ENTRADA</option>
+          <option value="SAIDA">SAÍDA</option>
+          <option value="AJUSTE">AJUSTE (define o estoque)</option>
+        </select>
+      </label>
+      <label>Quantidade<input name="quantidade" type="number" min="1" required /></label>
+      <label>Observação<input name="observacao" placeholder="Ex: NF 123 / Pedido #45 / Inventário" /></label>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-primary" type="submit">Confirmar</button>
+      <a class="btn btn-ghost" href="/estoque">Voltar</a>
+    </div>
+  </form>
+</div>

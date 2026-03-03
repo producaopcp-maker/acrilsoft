@@ -1,0 +1,30 @@
+<%- include("layout", { title: "Novo Fornecedor", body: `
+  <div class="card">
+    <div class="h1">Cadastrar fornecedor</div>
+
+    <form class="form" method="post" action="/fornecedores">
+      <div class="grid">
+        <label>Nome
+          <input name="nome" placeholder="Ex: Distribuidora X" required />
+        </label>
+
+        <label>WhatsApp
+          <input name="whatsapp" placeholder="Ex: +55 11 99999-9999" />
+        </label>
+
+        <label>Email
+          <input name="email" placeholder="Ex: compras@fornecedor.com" />
+        </label>
+
+        <label>Observação
+          <input name="observacao" placeholder="Ex: prazo, contato, condições..." />
+        </label>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-primary" type="submit">Salvar</button>
+        <a class="btn btn-ghost" href="/fornecedores">Cancelar</a>
+      </div>
+    </form>
+  </div>
+` }) %>

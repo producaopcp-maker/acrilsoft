@@ -1,0 +1,330 @@
+<div class="page-head">
+  <div>
+    <div class="h1">Dashboard</div>
+    <div class="muted">Visão geral do sistema • Período: desde <b><%= desde %></b></div>
+  </div>
+
+  <form class="row" method="get" action="/dashboard" style="gap:10px; align-items:flex-end;">
+    <div>
+      <div class="label">Período (dias)</div>
+      <input class="input" name="dias" type="number" min="1" max="365" value="<%= String((typeof dias !== 'undefined' ? dias : 30)) %>" style="width:110px;" />
+    </div>
+    <button class="btn" type="submit">Aplicar</button>
+  </form>
+</div>
+
+
+<div class="kpis">
+  <div class="kpi kpi-warn">
+    <div class="kpi-label">OPs atrasadas</div>
+    <div class="kpi-value"><%= (kpis && kpis.ops_atrasadas) || 0 %></div>
+    <div class="kpi-sub">Priorize as entregas vencidas</div>
+  </div>
+
+  <div class="kpi">
+    <div class="kpi-label">OPs em andamento</div>
+    <div class="kpi-value"><%= (kpis && kpis.ops_andamento) || 0 %></div>
+    <div class="kpi-sub">Em produção / separação</div>
+  </div>
+
+  <div class="kpi">
+    <div class="kpi-label">Vencendo em 7 dias</div>
+    <div class="kpi-value"><%= (kpis && kpis.ops_vencendo_7d) || 0 %></div>
+    <div class="kpi-sub">Planeje o fluxo desta semana</div>
+  </div>
+
+  <div class="kpi kpi-warn">
+    <div class="kpi-label">Produtos abaixo do mínimo</div>
+    <div class="kpi-value"><%= (kpis && kpis.produtos_abaixo_minimo) || 0 %></div>
+    <div class="kpi-sub">Atenção no estoque de chapas</div>
+  </div>
+
+  <div class="kpi kpi-warn">
+    <div class="kpi-label">Insumos abaixo do mínimo</div>
+    <div class="kpi-value"><%= (kpis && kpis.insumos_abaixo_minimo) || 0 %></div>
+    <div class="kpi-sub">Colas, fitas, limpeza, etc.</div>
+  </div>
+</div>
+
+<div class="grid" style="grid-template-columns: 1.1fr .9fr; gap:14px; align-items:start;">
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <div class="h2">OPs atrasadas</div>
+        <div class="muted">Clique na OP para abrir o detalhe</div>
+      </div>
+      <div class="actions">
+        <a class="btn btn-ghost" href="/ops">Ver todas</a>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>OP</th>
+            <th>Cliente</th>
+            <th>Produto</th>
+            <th>Qtd</th>
+            <th>Entrega</th>
+            <th>Prioridade</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (!lista_atrasadas || lista_atrasadas.length === 0) { %>
+            <tr><td colspan="6" class="td-empty">Nenhuma OP atrasada 🎉</td></tr>
+          <% } %>
+
+          <% (lista_atrasadas || []).forEach(op => { %>
+            <tr class="row-link" onclick="location.href='/ops/<%= op.id %>'">
+              <td><b><%= op.codigo_op %></b></td>
+              <td><%= op.cliente || '-' %></td>
+              <td><%= op.produto_final || '-' %></td>
+              <td><%= op.quantidade_final || '-' %></td>
+              <td><%= op.data_entrega || '-' %></td>
+              <td><span class="badge"><%= op.prioridade || 'NORMAL' %></span></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <div class="h2">Estoque crítico</div>
+        <div class="muted">Itens abaixo do estoque mínimo</div>
+      </div>
+    </div>
+
+    <div style="display:grid; gap:12px;">
+      <div>
+        <div class="h3" style="margin-bottom:6px;">📦 Produtos</div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Produto</th>
+                <th>Atual</th>
+                <th>Mín.</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% if (!produtos_criticos || produtos_criticos.length === 0) { %>
+                <tr><td colspan="3" class="td-empty">Sem alertas</td></tr>
+              <% } %>
+              <% (produtos_criticos || []).forEach(p => { %>
+                <tr class="row-link" onclick="location.href='/estoque'">
+                  <td>
+                    <b><%= p.descricao %></b>
+                    <div class="muted"><%= (p.cor || '') %> <%= (p.espessura_mm ? (p.espessura_mm + 'mm') : '') %></div>
+                  </td>
+                  <td><b><%= p.estoque_atual %></b></td>
+                  <td><%= p.estoque_minimo %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div>
+        <div class="h3" style="margin-bottom:6px;">🧴 Insumos</div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Insumo</th>
+                <th>Atual</th>
+                <th>Mín.</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% if (!insumos_criticos || insumos_criticos.length === 0) { %>
+                <tr><td colspan="3" class="td-empty">Sem alertas</td></tr>
+              <% } %>
+              <% (insumos_criticos || []).forEach(i => { %>
+                <tr class="row-link" onclick="location.href='/insumos'">
+                  <td>
+                    <b><%= i.nome %></b>
+                    <div class="muted"><%= i.categoria || '' %> <%= i.unidade ? ('• ' + i.unidade) : '' %></div>
+                  </td>
+                  <td><b><%= i.estoque_atual %></b></td>
+                  <td><%= i.estoque_minimo %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="grid" style="grid-template-columns: 1fr 1fr; gap:14px; margin-top:14px; align-items:start;">
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <div class="h2">Consumo de material</div>
+        <div class="muted">Produtos mais utilizados nas OPs (últimos <%= dias %> dias)</div>
+      </div>
+      <div class="actions">
+        <a class="btn btn-ghost" href="/relatorio-mensal">Relatório</a>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Produto</th>
+            <th>Qtd total</th>
+            <th>OPs</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (!consumo_produtos || consumo_produtos.length === 0) { %>
+            <tr><td colspan="3" class="td-empty">Sem consumo no período</td></tr>
+          <% } %>
+
+          <% (consumo_produtos || []).slice(0, 12).forEach(r => { %>
+            <tr>
+              <td>
+                <b><%= r.descricao %></b>
+                <div class="muted"><%= r.codigo_interno || '' %> <%= (r.cor ? ('• ' + r.cor) : '') %> <%= (r.espessura_mm ? ('• ' + r.espessura_mm + 'mm') : '') %></div>
+              </td>
+              <td><b><%= r.qtd_total %></b></td>
+              <td><%= r.ops %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <div class="h2">Consumo de insumos</div>
+        <div class="muted">Saídas registradas (últimos <%= dias %> dias)</div>
+      </div>
+      <div class="actions">
+        <a class="btn btn-ghost" href="/insumos">Abrir Insumos</a>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Insumo</th>
+            <th>Qtd</th>
+            <th>Eventos</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (!top_insumos || top_insumos.length === 0) { %>
+            <tr><td colspan="3" class="td-empty">Sem consumo de insumos no período</td></tr>
+          <% } %>
+          <% (top_insumos || []).forEach(r => { %>
+            <tr>
+              <td>
+                <b><%= r.nome %></b>
+                <div class="muted"><%= r.unidade || 'un' %></div>
+              </td>
+              <td><b><%= r.qtd_total %></b></td>
+              <td><%= r.eventos %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="grid" style="grid-template-columns: 1fr 1fr; gap:14px; margin-top:14px; align-items:start;">
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <div class="h2">Movimentações recentes</div>
+        <div class="muted">Produtos (estoque)</div>
+      </div>
+      <div class="actions">
+        <a class="btn btn-ghost" href="/estoque">Abrir Estoque</a>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Produto</th>
+            <th>Tipo</th>
+            <th>Qtd</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (!ult_mov_produtos || ult_mov_produtos.length === 0) { %>
+            <tr><td colspan="4" class="td-empty">Sem movimentações</td></tr>
+          <% } %>
+          <% (ult_mov_produtos || []).forEach(mv => { %>
+            <tr>
+              <td><%= mv.data || '-' %></td>
+              <td><%= mv.descricao || mv.codigo_interno || '-' %></td>
+              <td><span class="badge"><%= (mv.tipo || '').toUpperCase() %></span></td>
+              <td><b><%= mv.quantidade %></b></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <div class="h2">Movimentações recentes</div>
+        <div class="muted">Insumos</div>
+      </div>
+      <div class="actions">
+        <a class="btn btn-ghost" href="/insumos">Abrir Insumos</a>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Insumo</th>
+            <th>Tipo</th>
+            <th>Qtd</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (!ult_mov_insumos || ult_mov_insumos.length === 0) { %>
+            <tr><td colspan="4" class="td-empty">Sem movimentações</td></tr>
+          <% } %>
+          <% (ult_mov_insumos || []).forEach(mv => { %>
+            <tr>
+              <td><%= mv.data || '-' %></td>
+              <td><%= mv.nome || '-' %></td>
+              <td><span class="badge"><%= (mv.tipo || '').toUpperCase() %></span></td>
+              <td><b><%= mv.quantidade %></b> <span class="muted"><%= mv.unidade || '' %></span></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  // linha clicável na tabela
+  document.querySelectorAll(".row-link").forEach(tr => {
+    tr.style.cursor = "pointer";
+  });
+</script>

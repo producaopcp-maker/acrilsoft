@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title><%= title || "Acrilsoft" %></title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sb-brand">
+        <div class="brand-wrap">
+          <img class="brand-full" src="/assets/acrilsoft-brand.png" alt="Acrilsoft">
+        </div>
+      </div>
+
+      <nav class="sb-nav">
+        <% const can = (m) => (typeof canModule === 'function' ? canModule(m) : true); %>
+
+        <% if (can('dashboard')) { %>
+          <a class="sb-link" href="/dashboard"><img class="sb-ico-img" src="/assets/icons/dashboard.svg" alt=""> Dashboard</a>
+        <% } %>
+
+        <% if (can('calendario')) { %>
+          <a class="sb-link <%= ((typeof activeMenu!=='undefined' && activeMenu==='calendario')?'active':'') %>" href="/calendario-saidas"><img class="sb-ico-img" src="/assets/icons/calendario.svg" alt=""> Calendário</a>
+        <% } %>
+
+        <% if (can('estoque')) { %>
+          <a class="sb-link" href="/estoque"><img class="sb-ico-img" src="/assets/icons/estoque.svg" alt=""> Estoque</a>
+                        <a class="sb-link" href="/cadastro-produtos"><%- ico('package') %> <span class="sb-text">Produtos</span></a>
+              <a class="sb-link" href="/cadastro-produtos/novo"><%- ico('square-plus') %> <span class="sb-text">Novo Produto</span></a>
+<a class="sb-link" href="/produtos/novo"><img class="sb-ico-img" src="/assets/icons/nova_chapa.svg" alt=""> Nova Chapa</a>
+          <a class="sb-link" href="/historico"><img class="sb-ico-img" src="/assets/icons/historico.svg" alt=""> Histórico</a>
+          <a class="sb-link" href="/estoque/brindes"><img class="sb-ico-img" src="/assets/icons/brindes.svg" alt=""> Estoque Brindes</a>
+          <a class="sb-link" href="/brindes/novo"><img class="sb-ico-img" src="/assets/icons/novo_brinde.svg" alt=""> Novo Brinde</a>
+          <a class="sb-link" href="/brindes/historico"><img class="sb-ico-img" src="/assets/icons/historico_brindes.svg" alt=""> Histórico Brindes</a>
+              <a class="sb-link" href="/brindes/catalogo"><%- ico('list') %> <span class="sb-text">Catálogo Brindes</span></a>
+              <a class="sb-link" href="/brindes/orcamentos"><%- ico('file-text') %> <span class="sb-text">Orçamentos Brindes</span></a>
+        <% } %>
+
+        <% if (can('insumos')) { %>
+          <a class="sb-link" href="/insumos"><img class="sb-ico-img" src="/assets/icons/insumos.svg" alt=""> Insumos</a>
+        <% } %>
+
+        <% if (can('servicos')) { %>
+          <a class="sb-link" href="/servicos"><img class="sb-ico-img" src="/assets/icons/servicos.svg" alt=""> Serviços</a>
+        <% } %>
+
+        
+        <% if (can('pedidos') || can('bling') || can('novo_pedido')) { %>
+
+          <% if (can('pedidos')) { %>
+            <a class="sb-link" href="/orcamentos"><%- ico('file-text') %> <span class="sb-text">Orçamentos</span></a>
+            <a class="sb-link" href="/pedidos"><img class="sb-ico-img" src="/assets/icons/pedidos.svg" alt=""> Pedidos</a>
+            <a class="sb-link" href="/pedidos/kanban"><img class="sb-ico-img" src="/assets/icons/pedidos.svg" alt=""> Controle de Pedidos</a>
+          <% } %>
+          <% if (can('novo_pedido')) { %>
+            <a class="sb-link" href="/pedidos/novo"><img class="sb-ico-img" src="/assets/icons/novo_brinde.svg" alt=""> Novo Pedido</a>
+            <a class="sb-link" href="/cadastro-produtos"><%- ico('package') %> <span class="sb-text">Produtos</span></a>
+          <% } %>
+        <% } %>
+          <% if (can('bling')) { %>
+            <a class="sb-link" href="/bling/pedidos"><img class="sb-ico-img" src="/assets/icons/pedidos.svg" alt=""> Pedidos Bling</a>
+          <% } %>
+          <% if (can('novo_pedido')) { %>
+            <a class="sb-link" href="/pedidos/novo"><img class="sb-ico-img" src="/assets/icons/novo_brinde.svg" alt=""> Novo Pedido</a>
+          <% } %>
+        <% } %>
+
+<% if (can('ops')) { %>
+          <a class="sb-link" href="/ops"><img class="sb-ico-img" src="/assets/icons/ops.svg" alt=""> Ordens de Produção</a>
+          <a class="sb-link" href="/ops/arquivadas"><img class="sb-ico-img" src="/assets/icons/arquivo.svg" alt=""> Arquivo OPs</a><% } %>
+
+        <% if (can('relatorios')) { %>
+          <a class="sb-link" href="/relatorio/mensal"><img class="sb-ico-img" src="/assets/icons/relatorio.svg" alt=""> Relatório Mensal</a>
+        <% } %>
+
+        <% if (can('fornecedores')) { %>
+          <a class="sb-link" href="/fornecedores"><img class="sb-ico-img" src="/assets/icons/fornecedores.svg" alt=""> Fornecedores</a>
+        <% } %>
+
+        <% if (can('backup') || can('branding') || can('usuarios')) { %>
+          <div class="sb-sep"></div>
+        <% } %>
+
+        <% if (can('backup')) { %>
+          <a class="sb-link" href="/backup"><img class="sb-ico-img" src="/assets/icons/backup.svg" alt=""> Backup</a>
+        <% } %>
+
+        <% if (can('branding')) { %>
+          <a class="sb-link <%= ((typeof activeMenu!=='undefined' && activeMenu==='branding')?'active':'') %>" href="/config/branding"><img class="sb-ico-img" src="/assets/icons/branding.svg" alt=""> Identidade Visual</a>
+        <% } %>
+
+        <% if (can('usuarios')) { %>
+          <a class="sb-link" href="/usuarios"><img class="sb-ico-img" src="/assets/icons/usuarios.svg" alt=""> Usuários</a>
+        <% } %>
+      </nav>
+
+      <div class="sb-footer">
+        <div class="sb-tip">
+          Exportar: <b>Excel</b><br/>
+          Backup: <b>20:00</b>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="topbar-left">
+          <div class="crumb"><%= title || "Acrilsoft" %></div>
+          <div class="muted db-status-line">
+            <span id="dbModeText"><%= (typeof dbMode !== 'undefined' && dbMode==='online') ? 'Banco ONLINE' : 'Banco LOCAL' %></span>
+            <span class="db-pill db-unknown" id="dbPill" title="Status do banco">• verificando…</span>
+          </div>
+        </div>
+
+        <div class="topbar-actions">
+          <button class="btn btn-outline theme-toggle" type="button" title="Alternar tema" >🌙</button>
+          <div class="user-pill">
+            <div class="user-avatar">👤</div>
+            <div class="user-name"><%= (user && user.nome) ? user.nome : (typeof userName !== "undefined" ? userName : "Operator") %></div>
+          </div>
+          <% if (user) { %>
+            <a class="btn btn-outline" href="/logout">Sair</a>
+          <% } %>
+          <% if (can('relatorios')) { %>
+          <% } %>
+
+        </div>
+      </header>
+
+      <section class="content">
+        <%- include(view) %>
+      </section>
+
+      <footer class="footer">
+        <small>Banco salvo no AppData • Uploads e anexos também</small>
+      </footer>
+    </main>
+  </div>
+
+<% if (typeof query !== 'undefined' && query && query.ok) { %>
+  <div class="toast toast-success" id="toastOk">
+    <strong>OK</strong>
+    <span><%= query.ok %></span>
+    <button onclick="this.parentElement.remove()">✖</button>
+  </div>
+<% } %>
+
+<% if (typeof query !== 'undefined' && query && query.erro) { %>
+  <div class="toast toast-error" id="toast">
+    <strong>Erro</strong>
+    <span><%= query.erro %></span>
+    <button onclick="this.parentElement.remove()">✖</button>
+  </div>
+<% } %>
+<script>
+  // Sidebar active link (único)
+  (function(){
+    try {
+      var path = window.location.pathname || "/";
+      var links = document.querySelectorAll(".sb-link");
+      var best = null;
+      links.forEach(function(a){
+        var href = a.getAttribute("href") || "";
+        if(!href || href === "#") return;
+        if(path === href) best = a;
+        else if(path.startsWith(href) && href.length > 1){
+          if(!best || href.length > (best.getAttribute("href")||"").length) best = a;
+        }
+      });
+      if(best) best.classList.add("active");
+    } catch(e){}
+  })();
+</script>
+
+
+<script>
+(function(){
+  const KEY = "acrilsoft_theme";
+  const root = document.documentElement;
+  function apply(t){
+    root.setAttribute("data-theme", t);
+    try{ localStorage.setItem(KEY, t); }catch(e){}
+    const btn = document.querySelector(".theme-toggle");
+    if(btn) btn.textContent = (t === "dark") ? "☀️" : "🌙";
+  }
+  function current(){ return root.getAttribute("data-theme") || "light"; }
+  function toggle(){ apply(current()==="dark" ? "light" : "dark"); }
+
+  let saved=null;
+  try{ saved = localStorage.getItem(KEY); }catch(e){}
+  const preferred = saved || ((window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? "dark" : "light");
+  apply(preferred);
+
+  const btn = document.querySelector(".theme-toggle");
+  if(btn){ btn.addEventListener("click", toggle); }
+})();
+</script>
+
+<script>
+// Indicador de status do banco (ONLINE/OFFLINE) + aviso amigável
+(function(){
+  var pill = document.getElementById('dbPill');
+  var modeText = document.getElementById('dbModeText');
+  if(!pill) return;
+
+  function setPill(cls, text, title){
+    pill.classList.remove('db-online','db-offline','db-unknown');
+    pill.classList.add(cls);
+    pill.textContent = text;
+    if(title) pill.setAttribute('title', title);
+  }
+
+  function showToast(kind, title, msg){
+    try{
+      var old = document.getElementById('dbToast');
+      if(old) old.remove();
+      var div = document.createElement('div');
+      div.id = 'dbToast';
+      div.className = 'toast ' + (kind === 'success' ? 'toast-success' : 'toast-error');
+      div.innerHTML = '<strong>'+title+'</strong><span>'+msg+'</span><button aria-label="Fechar">✖</button>';
+      div.querySelector('button').onclick = function(){ div.remove(); };
+      document.body.appendChild(div);
+      // some sozinho
+      setTimeout(function(){ try{ div.remove(); }catch(e){} }, 6000);
+    }catch(e){}
+  }
+
+  var lastOk = null;
+  async function check(){
+    try{
+      var r = await fetch('/api/db-status', { cache: 'no-store' });
+      var st = await r.json();
+      if(st && st.mode){
+        if(modeText) modeText.textContent = (st.mode === 'online') ? 'Banco ONLINE' : 'Banco LOCAL';
+      }
+
+      if(st && st.ok){
+        setPill('db-online', '• ONLINE', 'Banco conectado');
+        if(lastOk === false){
+          showToast('success','Banco ONLINE','Conexão restabelecida.');
+        }
+        lastOk = true;
+      } else {
+        setPill('db-offline', '• OFFLINE', (st && st.error) ? st.error : 'Sem conexão');
+        if(lastOk === true){
+          showToast('error','Banco OFFLINE','Sem conexão com o banco. Verifique a internet / token.');
+        }
+        lastOk = false;
+      }
+    } catch(e){
+      setPill('db-offline', '• OFFLINE', 'Sem conexão');
+      if(lastOk === true){
+        showToast('error','Banco OFFLINE','Sem conexão com o banco.');
+      }
+      lastOk = false;
+    }
+  }
+
+  // Primeira checagem rápida + pooling
+  setPill('db-unknown','• verificando…','Checando conexão');
+  check();
+  setInterval(check, 8000);
+})();
+</script>
+
+</body>
+
+</html>

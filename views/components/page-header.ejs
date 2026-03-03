@@ -1,0 +1,74 @@
+<%
+  // Componente genérico: Header padrão (SaaS) para páginas.
+  // Uso:
+  // include('components/page-header', {
+  //   title: '...',
+  //   status: 'APROVADO' (opcional),
+  //   subtitle: '...' (opcional),
+  //   meta: [{ label:'Cliente', value:'Fulano', strong:true }],
+  //   primaryActions: [ '<a class="btn btn-primary" href="...">Ação</a>' ],
+  //   secondaryActions: [ '...' ]
+  // })
+
+  const _title = title || '';
+  const _status = (typeof status !== 'undefined' && status !== null && String(status).trim() !== '') ? String(status).toUpperCase() : '';
+  const _subtitle = subtitle || '';
+  const _meta = Array.isArray(meta) ? meta : [];
+  const _primary = Array.isArray(primaryActions) ? primaryActions : [];
+  const _secondary = Array.isArray(secondaryActions) ? secondaryActions : [];
+
+  function chipClass(st){
+    st = String(st||'').toUpperCase();
+    // Mapeamento genérico (Pedido/OP/Orçamento/Estoque/Fiscal)
+    if (['FATURADO','ENTREGUE','FINALIZADA','PAGO','ATIVO','OK'].includes(st)) return 'chip chip-ok';
+    if (['CANCELADO','CANCELADA','INATIVO','ERRO'].includes(st)) return 'chip chip-danger';
+    if (['APROVADO','EM_PRODUCAO','PRONTO','ENVIADO','ONLINE'].includes(st)) return 'chip chip-info';
+    if (['ORCAMENTO','RASCUNHO','ABERTA','AGUARDANDO_MATERIAL','PENDENTE'].includes(st)) return 'chip chip-warn';
+    return 'chip chip-warn';
+  }
+%>
+
+<div class="pedido-header">
+  <div class="pedido-header-top">
+    <div class="pedido-title">
+      <div class="pedido-title-row">
+        <div class="h1"><%- _title %></div>
+        <% if (_status) { %>
+          <span class="<%= chipClass(_status) %>"><%= _status %></span>
+        <% } %>
+      </div>
+      <% if (_subtitle) { %>
+        <div class="muted"><%- _subtitle %></div>
+      <% } %>
+
+      <% if (_meta.length) { %>
+        <div class="pedido-meta">
+          <% _meta.forEach((m) => { %>
+            <div class="pedido-meta-item">
+              <div class="pedido-meta-label"><%= m.label || '' %></div>
+              <div class="pedido-meta-value <%= m.strong ? 'pedido-meta-total' : '' %>"><%- (m.value ?? '-') %></div>
+            </div>
+          <% }) %>
+        </div>
+      <% } %>
+    </div>
+
+    <div class="pedido-header-actions-wrap"><div class="pedido-header-actions" role="group" aria-label="Ações">
+      <% if (_primary.length) { %>
+        <div class="pedido-header-actions-primary">
+          <% _primary.forEach(a => { %>
+            <%- a %>
+          <% }) %>
+        </div>
+      <% } %>
+
+      <% if (_secondary.length) { %>
+        <div class="pedido-header-actions-secondary">
+          <% _secondary.forEach(a => { %>
+            <%- a %>
+          <% }) %>
+        </div>
+      <% } %>
+    </div></div>
+  </div>
+</div>

@@ -1,0 +1,384 @@
+<%
+  const isEdit = (modo === "editar");
+  const p = pedido || {};
+  const itensArr = Array.isArray(itens) ? itens : [];
+  const clientesArr = Array.isArray(clientes) ? clientes : [];
+
+  function val(x){ return (x===null || x===undefined) ? "" : String(x); }
+%>
+
+<div class="card">
+  <div class="card-head">
+    <div>
+      <div class="h1"><%= isEdit ? ("Editar Pedido #" + p.id) : "Novo Pedido" %></div>
+      <div class="muted">Preencha os dados comerciais. Depois você converte em OP e completa o técnico.</div>
+    </div>
+    <div class="card-actions">
+      <a class="btn btn-ghost" href="/pedidos">Voltar</a>
+    </div>
+  </div>
+
+  <form method="post" action="<%= isEdit ? ("/pedidos/" + p.id) : "/pedidos" %>" enctype="multipart/form-data">
+    <div class="row" style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+      
+<div>
+  <label class="lbl">Cliente (opcional)</label>
+  <select class="inp" name="cliente_id" id="clienteId">
+    <option value="">Avulso / Consumidor final</option>
+    <% clientesArr.forEach(c => { %>
+      <option value="<%= c.id %>" <%= (String(p.cliente_id||'')===String(c.id)?'selected':'') %>>
+        <%= (c.nome_exibicao || 'Cliente #' + c.id) %><%= (c.doc ? (' - ' + c.doc) : '') %>
+      </option>
+    <% }) %>
+  </select>
+  <div class="muted" style="margin-top:6px;">Dica: você pode criar o pedido avulso e vincular o cliente depois.</div>
+</div>
+
+<div>
+  <label class="lbl">Nome (avulso)</label>
+  <input class="inp" name="cliente_nome_avulso" id="clienteNomeAvulso" value="<%= val(p.cliente_nome_avulso || p.cliente_nome) %>" placeholder="ex: Consumidor final">
+</div>
+
+<div>
+  <label class="lbl">Telefone/WhatsApp (avulso)</label>
+  <input class="inp" name="cliente_telefone_avulso" id="clienteTelAvulso" value="<%= val(p.cliente_telefone_avulso || p.cliente_contato) %>" placeholder="(00) 00000-0000">
+</div>
+
+<div>
+  <label class="lbl">Contato do cliente (legado)</label>
+  <input class="inp" name="cliente_contato" value="<%= val(p.cliente_contato) %>" placeholder="opcional">
+</div>
+
+      <div>
+        <label class="lbl">Vendedor</label>
+        <input class="inp" name="vendedor_nome" value="<%= val(p.vendedor_nome) %>">
+      </div>
+      <div>
+        <label class="lbl">Prazo</label>
+        <input class="inp" type="date" name="prazo_entrega" value="<%= val(p.prazo_entrega) %>">
+      </div>
+
+      <div>
+        <label class="lbl">Data da venda</label>
+        <input class="inp" type="date" name="data_venda" value="<%= val(p.data_venda) %>">
+      </div>
+      <div>
+        <label class="lbl">Tipo de venda</label>
+        <select class="inp" name="tipo_venda">
+          <% const tv = (val(p.tipo_venda).toUpperCase() || 'PRODUTO'); %>
+          <option value="PRODUTO" <%= (tv==='PRODUTO')?'selected':'' %>>PRODUTO</option>
+          <option value="SERVICO" <%= (tv==='SERVICO')?'selected':'' %>>SERVICO</option>
+          <option value="MISTO" <%= (tv==='MISTO')?'selected':'' %>>MISTO</option>
+        </select>
+      </div>
+      <div>
+        <label class="lbl">Validade (orçamento)</label>
+        <input class="inp" type="date" name="data_validade" value="<%= val(p.data_validade) %>">
+      </div>
+      <div>
+        <label class="lbl">Canal de venda</label>
+        <input class="inp" name="canal_venda" value="<%= val(p.canal_venda) %>" placeholder="Manual / WhatsApp / Bling...">
+      </div>
+      <div>
+        <label class="lbl">Entrega</label>
+        <select class="inp" name="tipo_entrega">
+          <% const te = (val(p.tipo_entrega).toUpperCase()); %>
+          <option value="" <%= (!te)?'selected':'' %>>-</option>
+          <option value="RETIRADA" <%= (te==='RETIRADA')?'selected':'' %>>RETIRADA</option>
+          <option value="ENTREGA" <%= (te==='ENTREGA')?'selected':'' %>>ENTREGA</option>
+          <option value="CORREIOS" <%= (te==='CORREIOS')?'selected':'' %>>CORREIOS</option>
+          <option value="MOTOBOY" <%= (te==='MOTOBOY')?'selected':'' %>>MOTOBOY</option>
+        </select>
+      </div>
+      <div style="grid-column:1 / -1;">
+        <label class="lbl">Endereço de entrega (texto livre)</label>
+        <input class="inp" name="endereco_entrega_texto" value="<%= val(p.endereco_entrega_texto) %>" placeholder="ex: Rua X, 123 - Centro - Cidade/UF">
+      </div>
+
+      <div>
+        <label class="lbl">Pedido de venda (Bling)</label>
+        <input class="inp" name="bling_numero" value="<%= val(p.bling_numero) %>" <%= (p.bling_id ? 'readonly' : '') %> >
+      </div>
+      <div>
+        <label class="lbl">Pedido de compra (Bling)</label>
+        <input class="inp" name="bling_pedido_compra" value="<%= val(p.bling_pedido_compra) %>">
+      </div>
+
+      <div>
+        <label class="lbl">Prioridade</label>
+        <select class="inp" name="prioridade">
+          <option value="NORMAL" <%= (val(p.prioridade).toUpperCase()==='NORMAL' || !p.prioridade) ? 'selected':'' %>>NORMAL</option>
+          <option value="URGENTE" <%= (val(p.prioridade).toUpperCase()==='URGENTE') ? 'selected':'' %>>URGENTE</option>
+        </select>
+      </div>
+      <div>
+        <label class="lbl">Status</label>
+        <select class="inp" name="status">
+          <% const st = (val(p.status).toUpperCase() || 'RASCUNHO'); %>
+          <% const opts = ['RASCUNHO','ORCAMENTO','APROVADO','EM_PRODUCAO','PRONTO','FATURADO','ENTREGUE','CANCELADO']; %>
+          <% opts.forEach(o => { %>
+            <option value="<%= o %>" <%= (st===o) ? 'selected':'' %>><%= o %></option>
+          <% }) %>
+        </select>
+      </div>
+    </div>
+
+    
+    <div style="margin-top:14px;">
+      <div class="h2">Totais</div>
+      <div class="row" style="display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap:12px; margin-top:8px;">
+        <div>
+          <label class="lbl">Desconto</label>
+          <div style="display:flex; gap:8px;">
+            <select class="inp" name="desconto_tipo" style="max-width:120px;">
+              <% const dt = (val(p.desconto_tipo).toUpperCase() || 'VALOR'); %>
+              <option value="VALOR" <%= (dt==='VALOR')?'selected':'' %>>R$</option>
+              <option value="PERCENT" <%= (dt==='PERCENT')?'selected':'' %>>%</option>
+            </select>
+            <input class="inp" name="desconto_valor" value="<%= val(p.desconto_valor || 0) %>">
+          </div>
+        </div>
+        <div>
+          <label class="lbl">Frete</label>
+          <input class="inp" name="frete_valor" value="<%= val(p.frete_valor || 0) %>">
+        </div>
+        <div>
+          <label class="lbl">Subtotal</label>
+          <input class="inp" id="subtotalView" value="<%= val(p.subtotal_itens || 0) %>" readonly>
+        </div>
+        <div>
+          <label class="lbl">Total</label>
+          <input class="inp" id="totalView" value="<%= val(p.total || 0) %>" readonly>
+        </div>
+      </div>
+      <div class="muted" style="margin-top:6px;">Subtotal/Total são recalculados automaticamente ao salvar (e também no preview).</div>
+    </div>
+
+    <div style="margin-top:14px;">
+      <div class="h2">Pré-fiscal (opcional)</div>
+      <div class="row" style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:12px; margin-top:8px;">
+        <div>
+          <label class="lbl">Natureza da operação</label>
+          <input class="inp" name="natureza_operacao" value="<%= val(p.natureza_operacao) %>" placeholder="ex: VENDA">
+        </div>
+        <div>
+          <label class="lbl">Consumidor final</label>
+          <select class="inp" name="consumidor_final">
+            <option value="1" <%= (String(p.consumidor_final||1)==='1')?'selected':'' %>>Sim</option>
+            <option value="0" <%= (String(p.consumidor_final||1)==='0')?'selected':'' %>>Não</option>
+          </select>
+        </div>
+        <div>
+          <label class="lbl">Presença comprador</label>
+          <select class="inp" name="presenca_comprador">
+            <% const pc = (val(p.presenca_comprador).toUpperCase()); %>
+            <option value="" <%= (!pc)?'selected':'' %>>-</option>
+            <option value="PRESENCIAL" <%= (pc==='PRESENCIAL')?'selected':'' %>>PRESENCIAL</option>
+            <option value="INTERNET" <%= (pc==='INTERNET')?'selected':'' %>>INTERNET</option>
+            <option value="TELEFONE" <%= (pc==='TELEFONE')?'selected':'' %>>TELEFONE</option>
+            <option value="OUTROS" <%= (pc==='OUTROS')?'selected':'' %>>OUTROS</option>
+          </select>
+        </div>
+        <div style="grid-column:1 / -1;">
+          <label class="lbl">Observação fiscal</label>
+          <input class="inp" name="observacao_fiscal" value="<%= val(p.observacao_fiscal) %>">
+        </div>
+      </div>
+    </div>
+<div style="margin-top:12px;">
+      <label class="lbl">Observações do vendedor</label>
+      <textarea class="inp" name="observacoes_vendedor" rows="3" placeholder="Preferências do cliente, contexto, etc..."><%= val(p.observacoes_vendedor) %></textarea>
+    </div>
+
+    <div style="margin-top:12px;">
+      <label class="lbl">Observações internas</label>
+      <textarea class="inp" name="observacoes_internas" rows="3" placeholder="Uso interno (opcional)"><%= val(p.observacoes_internas) %></textarea>
+    </div>
+
+    <div style="margin-top:12px;">
+      <label class="lbl">Anexo (opcional)</label>
+      <input class="inp" type="file" name="anexo" accept="image/*,application/pdf">
+      <% if (isEdit && p.anexo_arquivo) { %>
+        <div class="muted" style="margin-top:6px;">Atual: <a href="/uploads/<%= p.anexo_arquivo %>" target="_blank"><%= p.anexo_arquivo %></a></div>
+      <% } %>
+    </div>
+
+    <div style="margin-top:16px;">
+      <div class="h2">Itens do pedido (opcional)</div>
+      <div class="muted">Os itens serão copiados para a Observação Interna da OP quando você clicar em "Gerar OP".</div>
+
+      <div class="table-wrap" style="margin-top:10px;">
+        <table class="table" id="itensTable">
+          <thead>
+            <tr>
+              <th style="width:220px;">Produto</th>
+              <th>Descrição</th>
+              <th style="width:90px;">Qtd</th>
+              <th style="width:80px;">Un</th>
+              <th style="width:90px;">Larg</th>
+              <th style="width:90px;">Alt</th>
+              <th style="width:80px;">Dim</th>
+              <th style="width:110px;">Preço</th>
+              <th style="width:110px;">Desc</th>
+              <th style="width:110px;">Total</th>
+              <th style="width:70px;"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% const linhas = itensArr.length ? itensArr : [{}]; %>
+            <% linhas.forEach((it, idx) => { %>
+              <tr>
+                <td>
+                  <select class="inp item-prod" name="item_produto_id" onchange="onPickProduto(this)">
+                    <option value="">(Livre)</option>
+                    <% (Array.isArray(catalogoProdutos)?catalogoProdutos:[]).forEach(cp => { %>
+                      <option value="<%= cp.id %>" <%= (String(it.produto_id||'')===String(cp.id)?'selected':'') %> data-nome="<%= (cp.nome||'').replace(/"/g, '&quot;') %>" data-un="<%= cp.unidade||'UN' %>" data-preco="<%= cp.preco_venda||0 %>" data-larg="<%= cp.largura_mm||'' %>" data-alt="<%= cp.altura_mm||'' %>">
+                        <%= cp.nome %><%= cp.sku ? (' - ' + cp.sku) : '' %>
+                      </option>
+                    <% }) %>
+                  </select>
+                </td>
+                <td><input class="inp" name="item_descricao" value="<%= val(it.descricao) %>" placeholder="ex: Troféu acrílico"></td>
+                <td><input class="inp" name="item_quantidade" value="<%= val(it.quantidade) %>" placeholder="0" oninput="recalcLinha(this)"></td>
+                <td><input class="inp" name="item_unidade" value="<%= val(it.unidade || 'UN') %>" placeholder="UN"></td>
+                <td><input class="inp" name="item_largura" value="<%= val(it.largura) %>" placeholder="0" oninput="recalcLinha(this)"></td>
+                <td><input class="inp" name="item_altura" value="<%= val(it.altura) %>" placeholder="0" oninput="recalcLinha(this)"></td>
+                <td>
+                  <select class="inp" name="item_unidade_dim" onchange="recalcLinha(this)">
+                    <% const ud = (val(it.unidade_dim).toUpperCase() || 'MM'); %>
+                    <option value="MM" <%= (ud==='MM')?'selected':'' %>>MM</option>
+                    <option value="CM" <%= (ud==='CM')?'selected':'' %>>CM</option>
+                  </select>
+                </td>
+                <td><input class="inp" name="item_preco_unit" value="<%= val(it.preco_unit || 0) %>" placeholder="0" oninput="recalcLinha(this)"></td>
+                <td><input class="inp" name="item_desconto" value="<%= val(it.desconto_item || 0) %>" placeholder="0" oninput="recalcLinha(this)"></td>
+                <td><input class="inp" name="item_total_item" value="<%= val(it.total_item || 0) %>" readonly></td>
+                <td><button class="btn btn-small btn-danger" type="button" onclick="removerLinha(this)">X</button></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="margin-top:10px;">
+        <button class="btn" type="button" onclick="adicionarLinha()">+ Adicionar item</button>
+      </div>
+    </div>
+
+    <div style="margin-top:18px; display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="btn btn-primary" type="submit"><%= isEdit ? "Salvar alterações" : "Criar pedido" %></button>
+      <% if (isEdit) { %>
+        <a class="btn btn-ghost" href="/pedidos/<%= p.id %>">Ver pedido</a>
+      <% } %>
+    </div>
+  </form>
+</div>
+
+<script>
+function toggleAvulso(){
+  const sel = document.getElementById('clienteId');
+  const has = sel && sel.value;
+  const n = document.getElementById('clienteNomeAvulso');
+  const t = document.getElementById('clienteTelAvulso');
+  if (n) n.disabled = !!has;
+  if (t) t.disabled = !!has;
+}
+document.getElementById('clienteId')?.addEventListener('change', toggleAvulso);
+window.addEventListener('load', toggleAvulso);
+
+
+function vnum(x){
+  if(!x) return 0;
+  const n = Number(String(x).replace(',', '.'));
+  return isFinite(n) ? n : 0;
+}
+function recalcLinha(el){
+  const tr = el.closest('tr');
+  if(!tr) return;
+  const qtd = vnum(tr.querySelector('[name="item_quantidade"]')?.value);
+  const preco = vnum(tr.querySelector('[name="item_preco_unit"]')?.value);
+  const desc = vnum(tr.querySelector('[name="item_desconto"]')?.value);
+  const total = (qtd*preco) - desc;
+  const out = tr.querySelector('[name="item_total_item"]');
+  if(out) out.value = String(total.toFixed(2));
+  recalcTotaisPreview();
+}
+function recalcTotaisPreview(){
+  let subtotal = 0;
+  document.querySelectorAll('[name="item_total_item"]').forEach(inp => subtotal += vnum(inp.value));
+  const dt = document.querySelector('[name="desconto_tipo"]')?.value || 'VALOR';
+  const dv = vnum(document.querySelector('[name="desconto_valor"]')?.value);
+  const frete = vnum(document.querySelector('[name="frete_valor"]')?.value);
+  const desconto = (dt==='PERCENT') ? (subtotal*(dv/100)) : dv;
+  const total = subtotal - desconto + frete;
+  const sV = document.getElementById('subtotalView'); if(sV) sV.value = subtotal.toFixed(2);
+  const tV = document.getElementById('totalView'); if(tV) tV.value = total.toFixed(2);
+}
+window.addEventListener('load', () => { document.querySelectorAll('#itensTable tbody tr').forEach(tr => recalcLinha(tr.querySelector('[name="item_quantidade"]') || tr)); recalcTotaisPreview(); });
+document.querySelector('[name="desconto_tipo"]')?.addEventListener('change', recalcTotaisPreview);
+document.querySelector('[name="desconto_valor"]')?.addEventListener('input', recalcTotaisPreview);
+document.querySelector('[name="frete_valor"]')?.addEventListener('input', recalcTotaisPreview);
+
+function adicionarLinha(){
+  const tbody = document.querySelector("#itensTable tbody");
+  const tr = document.createElement("tr");
+  tr.innerHTML = `
+    <td><input class="inp" name="item_descricao" placeholder="ex: Troféu acrílico"></td>
+    <td><input class="inp" name="item_quantidade" placeholder="0" oninput="recalcLinha(this)"></td>
+    <td><input class="inp" name="item_unidade" value="UN" placeholder="UN"></td>
+    <td><input class="inp" name="item_largura" placeholder="0" oninput="recalcLinha(this)"></td>
+    <td><input class="inp" name="item_altura" placeholder="0" oninput="recalcLinha(this)"></td>
+    <td>
+      <select class="inp" name="item_unidade_dim" onchange="recalcLinha(this)">
+        <option value="MM" selected>MM</option>
+        <option value="CM">CM</option>
+      </select>
+    </td>
+    <td><input class="inp" name="item_preco_unit" value="0" placeholder="0" oninput="recalcLinha(this)"></td>
+    <td><input class="inp" name="item_desconto" value="0" placeholder="0" oninput="recalcLinha(this)"></td>
+    <td><input class="inp" name="item_total_item" value="0" readonly></td>
+    <td><button class="btn btn-small btn-danger" type="button" onclick="removerLinha(this)">X</button></td>
+  `;
+  tbody.appendChild(tr);
+}
+function removerLinha(btn){
+  const tr = btn.closest("tr");
+  if (!tr) return;
+  const tbody = tr.parentElement;
+  tr.remove();
+  if (tbody.children.length === 0) adicionarLinha();
+}
+</script>
+
+
+<script>
+  function onPickProduto(sel){
+    try{
+      const opt = sel.options[sel.selectedIndex];
+      const tr = sel.closest('tr');
+      if(!tr) return;
+      const nome = opt.getAttribute('data-nome') || '';
+      const un = opt.getAttribute('data-un') || 'UN';
+      const preco = opt.getAttribute('data-preco') || '0';
+      const larg = opt.getAttribute('data-larg') || '';
+      const alt = opt.getAttribute('data-alt') || '';
+
+      const inpDesc = tr.querySelector('input[name="item_descricao"]');
+      const inpUn = tr.querySelector('input[name="item_unidade"]');
+      const inpPreco = tr.querySelector('input[name="item_preco_unit"]');
+      const inpLarg = tr.querySelector('input[name="item_largura"]');
+      const inpAlt = tr.querySelector('input[name="item_altura"]');
+
+      // Só autopreenche se estiver vazio (pra não sobrescrever edição manual)
+      if(inpDesc && !inpDesc.value.trim() && nome) inpDesc.value = nome;
+      if(inpUn && (!inpUn.value.trim() || inpUn.value==='UN') && un) inpUn.value = un;
+      if(inpPreco && (!inpPreco.value || Number(inpPreco.value)===0) && preco) inpPreco.value = preco;
+      if(inpLarg && !inpLarg.value && larg) inpLarg.value = larg;
+      if(inpAlt && !inpAlt.value && alt) inpAlt.value = alt;
+
+      if(typeof recalcRow === 'function') recalcRow(tr);
+      if(typeof recalcTotals === 'function') recalcTotals();
+    }catch(e){}
+  }
+</script>
+

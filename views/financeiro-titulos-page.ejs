@@ -1,0 +1,151 @@
+<%
+  const rows = Array.isArray(titulos) ? titulos : [];
+  const contas = Array.isArray(contasList) ? contasList : [];
+  const f = filtros || {};
+  const tipo = String(listTipo || '').toUpperCase(); // RECEBER | PAGAR
+  const title = (tipo==='PAGAR') ? 'Contas a Pagar' : 'Contas a Receber';
+
+  function money(v){
+    v = Number(v||0) || 0;
+    return v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+  }
+  function statusChip(st){
+    st = String(st||'').toUpperCase();
+    if (st==='PAGO') return "chip chip-ok";
+    if (st==='CANCELADO') return "chip chip-danger";
+    if (st==='PARCIAL') return "chip chip-warn";
+    return "chip chip-warn";
+  }
+%>
+
+<div class="card">
+  <div class="card-head">
+    <div>
+      <div class="h1"><%= title %></div>
+      <div class="muted">Controle total: títulos, vencimentos, baixa parcial e extrato.</div>
+    </div>
+    <div class="card-actions">
+      <a class="btn btn-secondary" href="/financeiro">Visão Geral</a>
+      <a class="btn btn-secondary" href="/financeiro/<%= (tipo==='PAGAR'?'receber':'pagar') %>"><%= (tipo==='PAGAR'?'Receber':'Pagar') %></a>
+    </div>
+  </div>
+
+  <form class="filters" method="get" action="/financeiro/<%= (tipo==='PAGAR'?'pagar':'receber') %>" style="margin-top:10px;">
+    <div class="row" style="display:flex; gap:10px; flex-wrap:wrap;">
+      <div style="flex:1; min-width:220px;">
+        <label class="lbl">Busca</label>
+        <input class="inp" name="q" placeholder="cliente/fornecedor, descrição, pedido..." value="<%= (f.q||'') %>">
+      </div>
+      <div style="min-width:180px;">
+        <label class="lbl">Status</label>
+        <select class="inp" name="status">
+          <option value="">Todos</option>
+          <option value="ABERTO" <%= (String(f.status||'').toUpperCase()==='ABERTO'?'selected':'') %>>ABERTO</option>
+          <option value=\"PARCIAL\" <%= (String(f.status||'').toUpperCase()==='PARCIAL'?'selected':'') %>>PARCIAL</option>
+          <option value="PAGO" <%= (String(f.status||'').toUpperCase()==='PAGO'?'selected':'') %>>PAGO</option>
+          <option value="CANCELADO" <%= (String(f.status||'').toUpperCase()==='CANCELADO'?'selected':'') %>>CANCELADO</option>
+        </select>
+      </div>
+      <div style="min-width:160px;">
+        <label class="lbl">De</label>
+        <input class="inp" type="date" name="de" value="<%= (f.de||'') %>">
+      </div>
+      <div style="min-width:160px;">
+        <label class="lbl">Até</label>
+        <input class="inp" type="date" name="ate" value="<%= (f.ate||'') %>">
+      </div>
+      <div style="align-self:end;">
+        <button class="btn" type="submit">Filtrar</button>
+        <a class="btn btn-ghost" href="/financeiro/<%= (tipo==='PAGAR'?'pagar':'receber') %>">Limpar</a>
+      </div>
+    </div>
+  </form>
+
+  <div class="table-wrap" style="margin-top:12px;">
+    <table class="table">
+      <thead>
+        <tr>
+          <th style="width:90px;">#</th>
+          <th>Cliente/Fornecedor</th>
+          <th>Descrição</th>
+          <th style="width:120px;">Venc.</th>
+          <th style="width:140px;">Valor</th>
+          <th style="width:140px;">Pago</th>
+          <th style="width:140px;">Saldo</th>
+          <th style="width:120px;">Status</th>
+          <th style="width:420px;">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (!rows.length) { %>
+          <tr><td colspan="9" class="muted">Nada por aqui ainda.</td></tr>
+        <% } %>
+
+        <% rows.forEach(t => { %>
+          <tr>
+            <td><%= t.id %></td>
+            <td>
+              <div style="font-weight:700;"><%= (t.pessoa_nome || '-') %></div>
+              <% if (t.origem === 'PEDIDO' && t.origem_id) { %>
+                <div class="muted">Pedido #<%= t.origem_id %></div>
+              <% } else if (t.origem) { %>
+                <div class="muted"><%= t.origem %></div>
+              <% } %>
+            </td>
+            <td>
+              <div style="font-weight:700;"><%= (t.descricao || '-') %></div>
+              <div class="muted"><%= (t.plano_nome ? ('Plano: '+t.plano_nome) : '') %></div>
+            </td>
+            <td><%= (t.vencimento || '-') %></td>
+            <td><%= money(t.valor) %></td>
+            <td><%= money(t.valor_pago) %></td>
+            <td><%= money((Number(t.valor||0)-Number(t.valor_pago||0))) %></td>
+            <td><span class="<%= statusChip(t.status) %>"><%= t.status %></span></td>
+            <td style="display:flex; gap:8px; flex-wrap:wrap; align-items:end;">
+              <a class="btn btn-small btn-secondary" href="/financeiro/titulos/<%= t.id %>/historico">Histórico</a>
+
+              <% if (['ABERTO','PARCIAL'].includes(String(t.status||'').toUpperCase())) { %>
+                <form method="post" action="/financeiro/titulos/<%= t.id %>/baixar" style="display:flex; gap:8px; flex-wrap:wrap;">
+                  <select class="inp" name="conta_id" style="min-width:140px;">
+                    <% contas.forEach(c => { %>
+                      <option value="<%= c.id %>" <%= (String(t.conta_id||'')===String(c.id) ? 'selected' : '') %>><%= c.nome %></option>
+                    <% }) %>
+                  </select>
+                  <input class="inp" type="date" name="data_mov" value="<%= (new Date().toISOString().slice(0,10)) %>">
+                  <input class="inp" name="valor_baixa" inputmode="decimal" placeholder="valor" style="max-width:110px;" value="<%= (Number(t.valor||0)-Number(t.valor_pago||0)).toFixed(2) %>">
+                  <button class="btn btn-small" type="submit">Baixar</button>
+                </form>
+
+                <form method="post" action="/financeiro/titulos/<%= t.id %>/cancelar" onsubmit="return confirm('Cancelar este título?')" style="display:inline;">
+                  <button class="btn btn-small btn-outline" type="submit">Cancelar</button>
+                </form>
+
+              <% } %>
+
+              <% if (t.last_mov_id && ['PARCIAL','PAGO'].includes(String(t.status||'').toUpperCase())) { %>
+                <form method="post" action="/financeiro/movimentos/<%= t.last_mov_id %>/estornar" onsubmit="return confirm('Estornar a última baixa deste título?')" style="display:flex; gap:8px; flex-wrap:wrap;">
+                  <input class="inp" type="date" name="data_mov" value="<%= (new Date().toISOString().slice(0,10)) %>">
+                  <button class="btn btn-small btn-outline" type="submit">Estornar última</button>
+                </form>
+              <% } %>
+
+              <% if (!t.last_mov_id && ['PAGO','CANCELADO'].includes(String(t.status||'').toUpperCase())) { %>
+                <span class="muted">—</span>
+              <% } %>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+
+  <script>
+    (function(){
+      const all = document.getElementById('chkAll');
+      if(!all) return;
+      all.addEventListener('change', function(){
+        document.querySelectorAll('.lote-check').forEach(ch => { ch.checked = all.checked; });
+      });
+    })();
+  </script>
+  </div>
+</div>

@@ -1,0 +1,112 @@
+<%
+  const isEdit = (modo === 'editar');
+  const p = produto || {};
+  function val(x){ return (x===null||x===undefined)?'':String(x); }
+%>
+
+<div class="card">
+  <div class="card-head">
+    <div>
+      <div class="h1"><%= isEdit ? ('Editar Produto #' + p.id) : 'Novo Produto (Catálogo)' %></div>
+      <div class="muted">Produto/serviço vendido no pedido. Pode ter ficha técnica para consumir chapas (m²).</div>
+    </div>
+    <div class="card-actions">
+      <a class="btn btn-ghost" href="/cadastro-produtos">Voltar</a>
+    </div>
+  </div>
+
+  <% if (erro) { %><div class="alert alert-err" style="margin-top:10px;"><%= erro %></div><% } %>
+  <% if (ok) { %><div class="alert alert-ok" style="margin-top:10px;"><%= ok %></div><% } %>
+
+  <form method="post" action="<%= isEdit ? ('/cadastro-produtos/' + p.id) : '/cadastro-produtos' %>">
+    <div class="row" style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-top:12px;">
+      <div>
+        <label class="lbl">Nome</label>
+        <input class="inp" name="nome" value="<%= val(p.nome) %>" required>
+      </div>
+      <div>
+        <label class="lbl">SKU (opcional)</label>
+        <input class="inp" name="sku" value="<%= val(p.sku) %>" placeholder="ex: DISP-MESA-100x100">
+      </div>
+
+      <div>
+        <label class="lbl">Tipo</label>
+        <select class="inp" name="tipo">
+          <option value="PRODUTO" <%= (val(p.tipo)==='PRODUTO'?'selected':'') %>>Produto</option>
+          <option value="SERVICO" <%= (val(p.tipo)==='SERVICO'?'selected':'') %>>Serviço</option>
+          <option value="MATERIA_PRIMA" <%= (val(p.tipo)==='MATERIA_PRIMA'?'selected':'') %>>Matéria-prima</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="lbl">Unidade</label>
+        <input class="inp" name="unidade" value="<%= val(p.unidade || 'UN') %>" placeholder="UN, PC, M2...">
+      </div>
+
+      <div>
+        <label class="lbl">Preço de venda</label>
+        <input class="inp" name="preco_venda" value="<%= val(p.preco_venda || 0) %>" type="number" step="0.01">
+      </div>
+      <div>
+        <label class="lbl">Custo unitário</label>
+        <input class="inp" name="custo_unit" value="<%= val(p.custo_unit || 0) %>" type="number" step="0.01">
+      </div>
+
+      <div>
+        <label class="lbl">Dimensão padrão (largura mm)</label>
+        <input class="inp" name="largura_mm" value="<%= val(p.largura_mm || '') %>" type="number" step="1" placeholder="opcional">
+      </div>
+      <div>
+        <label class="lbl">Dimensão padrão (altura mm)</label>
+        <input class="inp" name="altura_mm" value="<%= val(p.altura_mm || '') %>" type="number" step="1" placeholder="opcional">
+      </div>
+
+      <div>
+        <label class="lbl">Dimensão padrão (profundidade mm)</label>
+        <input class="inp" name="profundidade_mm" value="<%= val(p.profundidade_mm || '') %>" type="number" step="1" placeholder="opcional">
+      </div>
+
+      <div>
+        <label class="lbl">Ativo</label>
+        <select class="inp" name="ativo">
+          <option value="1" <%= (String(p.ativo??1)==='1'?'selected':'') %>>Sim</option>
+          <option value="0" <%= (String(p.ativo??1)==='0'?'selected':'') %>>Não</option>
+        </select>
+      </div>
+      <div>
+        <label class="lbl">Controla estoque (produto pronto)</label>
+        <select class="inp" name="controla_estoque">
+          <option value="1" <%= (String(p.controla_estoque??1)==='1'?'selected':'') %>>Sim</option>
+          <option value="0" <%= (String(p.controla_estoque??1)==='0'?'selected':'') %>>Não</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row" style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:12px; margin-top:12px;">
+      <div>
+        <label class="lbl">NCM (opcional)</label>
+        <input class="inp" name="ncm" value="<%= val(p.ncm) %>">
+      </div>
+      <div>
+        <label class="lbl">CFOP padrão (opcional)</label>
+        <input class="inp" name="cfop" value="<%= val(p.cfop) %>">
+      </div>
+      <div>
+        <label class="lbl">Origem (0..8)</label>
+        <input class="inp" name="origem" value="<%= val(p.origem ?? '') %>" type="number" step="1" min="0" max="8">
+      </div>
+    </div>
+
+    <div style="margin-top:12px;">
+      <label class="lbl">Observações</label>
+      <textarea class="inp" name="obs" rows="3" placeholder="Ex: acabamento, embalagem, detalhes..."><%= val(p.obs) %></textarea>
+    </div>
+
+    <div class="row" style="gap:10px; margin-top:14px;">
+      <button class="btn" type="submit"><%= isEdit ? 'Salvar' : 'Cadastrar' %></button>
+      <% if (isEdit) { %>
+        <a class="btn btn-ghost" href="/cadastro-produtos/<%= p.id %>/bom">Editar Ficha Técnica</a>
+      <% } %>
+    </div>
+  </form>
+</div>

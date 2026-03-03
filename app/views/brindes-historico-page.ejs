@@ -1,0 +1,44 @@
+
+<div class="card">
+  <div class="card-head">
+    <div>
+      <div class="h1">Histórico — Brindes</div>
+      <div class="muted">Últimas movimentações (até 500)</div>
+    </div>
+    <form class="search" method="get" action="/brindes/historico">
+      <input name="q" value="<%= q || '' %>" placeholder="Buscar..." class="input"/>
+      <button class="btn" type="submit">Buscar</button>
+      <a class="btn btn-ghost" href="/estoque/brindes">Voltar</a>
+    </form>
+  </div>
+
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Brinde</th>
+          <th>Tipo</th>
+          <th>Qtd</th>
+          <th>Obs</th>
+          <th>OP</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% (movs || []).forEach(m => { %>
+          <tr>
+            <td><%= (m.criado_em || '').toString().replace('T',' ').slice(0,16) %></td>
+            <td><b><%= m.brinde_nome %></b></td>
+            <td><%= m.tipo %></td>
+            <td><%= m.quantidade %> <%= m.unidade || 'UN' %></td>
+            <td><%= m.observacao || '-' %></td>
+            <td><%= m.op_id ? ('#' + m.op_id) : '-' %></td>
+          </tr>
+        <% }) %>
+        <% if (!movs || movs.length === 0) { %>
+          <tr><td colspan="6" class="muted">Sem movimentações.</td></tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+</div>

@@ -1,0 +1,117 @@
+<%
+  const rowsList = Array.isArray(rows) ? rows : [];
+  const f = filtros || {};
+  const k = resumo || {};
+  const saldos = Array.isArray(saldosPorConta) ? saldosPorConta : [];
+  function money(v){
+    v = Number(v||0) || 0;
+    return v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+  }
+%>
+
+<div class="card">
+  <div class="card-head">
+    <div>
+      <div class="h1">Fluxo de Caixa (projeção)</div>
+      <div class="muted">Projeção baseada em títulos em aberto (ABERTO/PARCIAL) por vencimento.</div>
+    </div>
+    <div class="card-actions">
+      <a class="btn btn-secondary" href="/financeiro">Visão Geral</a>
+      <a class="btn btn-secondary" href="/financeiro/receber">Receber</a>
+      <a class="btn btn-secondary" href="/financeiro/pagar">Pagar</a>
+    </div>
+  </div>
+
+  <form method="get" action="/financeiro/fluxo" style="margin-top:10px;">
+    <div class="row" style="display:flex; gap:10px; flex-wrap:wrap; align-items:end;">
+      <div style="min-width:180px;">
+        <label class="lbl">Início</label>
+        <input class="inp" type="date" name="inicio" value="<%= (f.inicio||'') %>">
+      </div>
+      <div style="min-width:160px;">
+        <label class="lbl">Dias</label>
+        <input class="inp" type="number" min="7" max="365" name="dias" value="<%= (f.dias||30) %>">
+      </div>
+      <div>
+        <button class="btn" type="submit">Atualizar</button>
+      </div>
+    </div>
+  </form>
+
+  <div class="grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:12px;">
+    <div class="card" style="margin:0;">
+      <div class="muted">Saldo inicial</div>
+      <div class="h1" style="margin-top:6px;"><%= money(k.saldo_inicial) %></div>
+      <div class="muted">Soma dos saldos por conta</div>
+    </div>
+    <div class="card" style="margin:0;">
+      <div class="muted">Entradas previstas</div>
+      <div class="h1" style="margin-top:6px;"><%= money(k.entradas) %></div>
+      <div class="muted">No período</div>
+    </div>
+    <div class="card" style="margin:0;">
+      <div class="muted">Saídas previstas</div>
+      <div class="h1" style="margin-top:6px;"><%= money(k.saidas) %></div>
+      <div class="muted">No período</div>
+    </div>
+    <div class="card" style="margin:0;">
+      <div class="muted">Saldo projetado</div>
+      <div class="h1" style="margin-top:6px;"><%= money(k.saldo_final) %></div>
+      <div class="muted">Final do período</div>
+    </div>
+  </div>
+
+  <div class="table-wrap" style="margin-top:14px;">
+    <div class="h2" style="margin:0 0 10px 0;">Projeção diária</div>
+    <table class="table">
+      <thead>
+        <tr>
+          <th style="width:130px;">Data</th>
+          <th style="width:160px;">Entradas</th>
+          <th style="width:160px;">Saídas</th>
+          <th style="width:160px;">Líquido</th>
+          <th style="width:180px;">Saldo projetado</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (!rowsList.length) { %>
+          <tr><td colspan="5" class="muted">Sem dados para o período.</td></tr>
+        <% } %>
+        <% rowsList.forEach(r => { %>
+          <tr>
+            <td><b><%= r.data %></b></td>
+            <td><%= money(r.entradas) %></td>
+            <td><%= money(r.saidas) %></td>
+            <td><%= money(r.liquido) %></td>
+            <td><%= money(r.saldo) %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="table-wrap" style="margin-top:14px;">
+    <div class="h2" style="margin:0 0 10px 0;">Saldos por conta (hoje)</div>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Conta</th>
+          <th>Tipo</th>
+          <th style="width:180px;">Saldo</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (!saldos.length) { %>
+          <tr><td colspan="3" class="muted">Nenhuma conta cadastrada ainda.</td></tr>
+        <% } %>
+        <% saldos.forEach(c => { %>
+          <tr>
+            <td><b><%= c.nome %></b></td>
+            <td><%= c.tipo %></td>
+            <td><%= money(c.saldo) %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>

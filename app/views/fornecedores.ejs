@@ -1,0 +1,36 @@
+<%- include("layout", { title: "Fornecedores", body: `
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <div class="h1">Fornecedores</div>
+        <div class="muted">Cadastre para vincular aos produtos</div>
+      </div>
+      <a class="btn btn-primary" href="/fornecedores/novo">Adicionar fornecedor</a>
+    </div>
+
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>WhatsApp</th>
+            <th>Email</th>
+            <th>Obs</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${fornecedores.length === 0 ? `
+            <tr><td colspan="4" class="td-empty">Nenhum fornecedor cadastrado.</td></tr>
+          ` : fornecedores.map(f => `
+            <tr>
+              <td><b>${f.nome}</b></td>
+              <td class="mono">${f.whatsapp ?? "-"}</td>
+              <td class="mono">${f.email ?? "-"}</td>
+              <td>${f.observacao ?? "-"}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+  </div>
+` }) %>

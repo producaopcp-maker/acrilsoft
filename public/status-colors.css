@@ -1,0 +1,37 @@
+
+/* ================================
+   STATUS BADGES – CORES (SAFE FIX)
+   Este arquivo NÃO substitui o styles.css
+================================ */
+
+.status-badge {
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 12px;
+  display: inline-block;
+}
+
+/* ABERTA – amarelo */
+.status-aberta {
+  background: #fff3cd !important;
+  color: #b58100 !important;
+}
+
+/* EM PRODUÇÃO – verde */
+.status-em-producao {
+  background: #e6f4ea !important;
+  color: #1e7e34 !important;
+}
+
+/* FINALIZADA – azul */
+.status-finalizada {
+  background: #e7f1ff !important;
+  color: #0b5ed7 !important;
+}
+
+/* CANCELADA / EXCLUÍDA – vermelho */
+.status-cancelada {
+  background: #fdecea !important;
+  color: #b02a37 !important;
+}

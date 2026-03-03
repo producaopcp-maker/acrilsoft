@@ -1,0 +1,65 @@
+<%
+  const saldos = Array.isArray(saldosPorConta) ? saldosPorConta : [];
+  const kpis = resumo || {};
+  function money(v){
+    v = Number(v||0) || 0;
+    return v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+  }
+%>
+
+<div class="card">
+  <div class="card-head">
+    <div>
+      <div class="h1">Financeiro</div>
+      <div class="muted">Visão geral das finanças (contas, a pagar e a receber).</div>
+    </div>
+    <div class="card-actions">
+      <a class="btn btn-secondary" href="/financeiro/receber">Contas a Receber</a>
+      <a class="btn btn-secondary" href="/financeiro/pagar">Contas a Pagar</a>
+      <a class="btn btn-secondary" href="/financeiro/fluxo">Fluxo de Caixa</a>
+    </div>
+  </div>
+
+  <div class="grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:12px;">
+    <div class="card" style="margin:0;">
+      <div class="muted">A receber (aberto)</div>
+      <div class="h1" style="margin-top:6px;"><%= money(kpis.receber_aberto) %></div>
+      <div class="muted">Vencidos: <b><%= (kpis.receber_vencidos||0) %></b></div>
+    </div>
+    <div class="card" style="margin:0;">
+      <div class="muted">A pagar (aberto)</div>
+      <div class="h1" style="margin-top:6px;"><%= money(kpis.pagar_aberto) %></div>
+      <div class="muted">Vencidos: <b><%= (kpis.pagar_vencidos||0) %></b></div>
+    </div>
+    <div class="card" style="margin:0;">
+      <div class="muted">Saldo total</div>
+      <div class="h1" style="margin-top:6px;"><%= money(kpis.saldo_total) %></div>
+      <div class="muted">Movimentações: <b><%= (kpis.movs_30d||0) %></b> (30 dias)</div>
+    </div>
+  </div>
+
+  <div class="table-wrap" style="margin-top:14px;">
+    <div class="h2" style="margin:0 0 10px 0;">Saldos por conta</div>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Conta</th>
+          <th>Tipo</th>
+          <th style="width:180px;">Saldo</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (!saldos.length) { %>
+          <tr><td colspan="3" class="muted">Nenhuma conta cadastrada ainda.</td></tr>
+        <% } %>
+        <% saldos.forEach(c => { %>
+          <tr>
+            <td><b><%= c.nome %></b></td>
+            <td><%= c.tipo %></td>
+            <td><%= money(c.saldo) %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>

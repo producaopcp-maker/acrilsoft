@@ -1,0 +1,118 @@
+<%
+  const rows = Array.isArray(orcamentos) ? orcamentos : [];
+  const fmtBRL = (v) => (Number(v||0)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmtDate = (iso) => {
+    if (!iso) return '';
+    try {
+      const d = new Date(String(iso).replace(' ', 'T') + 'Z');
+      return d.toLocaleDateString('pt-BR');
+    } catch (e) { return iso; }
+  };
+  const chipClass = (s) => {
+    const v = String(s||'').toUpperCase();
+    if (['APROVADO','PAGO','ENTREGUE','FINALIZADO','FINALIZADA'].includes(v)) return 'chip chip-ok';
+    if (['CANCELADO','CANCELADA'].includes(v)) return 'chip chip-danger';
+    if (['ENVIADO','EM_PRODUCAO','PRONTO','AGUARDANDO'].includes(v)) return 'chip chip-info';
+    return 'chip chip-warn';
+  };
+%>
+
+<div class="page">
+  <%- include('components/page-header', {
+    title: 'Orçamentos (Brindes)',
+    status: '',
+    subtitle: 'Crie, envie e aprove para gerar o Pedido automaticamente.',
+    meta: [
+      { label: 'Registros', value: rows.length, strong: false }
+    ],
+    primaryActions: [
+      '<a class="btn btn-primary" href="/brindes/orcamentos/novo">Novo Orçamento</a>'
+    ],
+    secondaryActions: [
+      '<a class="btn btn-secondary" href="/brindes">Ver Brindes</a>'
+    ]
+  }) %>
+
+  <div class="card" style="margin-top:12px;">
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table" id="orcTable">
+          <thead>
+            <tr>
+              <th style="width:90px;">#</th>
+              <th>Cliente</th>
+              <th style="width:140px;">Status</th>
+              <th style="width:140px;">Validade</th>
+              <th style="width:160px;" class="text-end">Total</th>
+              <th style="width:190px;">Criado</th>
+              <th style="width:140px;">Pedido</th>
+              <th style="width:220px;" class="text-end">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="orcTbody">
+            <% if (!rows.length) { %>
+              <tr><td colspan="8" class="muted">Nenhum orçamento criado.</td></tr>
+            <% } %>
+
+            <% rows.forEach((o) => { %>
+              <tr class="orc-row"
+                  data-q="<%= String([o.id, o.cliente_nome, o.status, o.pedido_id].filter(Boolean).join(' ')).toLowerCase() %>"
+                  data-status="<%= String(o.status||'').toUpperCase() %>">
+                <td>
+                  <a href="/brindes/orcamentos/<%= o.id %>">#<%= o.id %></a>
+                </td>
+                <td>
+                  <div style="font-weight:600"><%= o.cliente_nome || ('Cliente #' + (o.cliente_id||'')) %></div>
+                  <% if (o.cliente_whatsapp) { %>
+                    <div class="muted" style="margin-top:2px;"><%= o.cliente_whatsapp %></div>
+                  <% } %>
+                </td>
+                <td>
+                  <span class="<%= chipClass(o.status) %>"><%= String(o.status||'RASCUNHO').toUpperCase() %></span>
+                </td>
+                <td><%= fmtDate(o.data_validade) || '—' %></td>
+                <td class="text-end">R$ <%= fmtBRL(o.total_final ?? o.total ?? 0) %></td>
+                <td><%= fmtDate(o.created_at || o.criado_em) || '—' %></td>
+                <td>
+                  <% if (o.pedido_id) { %>
+                    <a href="/pedidos/<%= o.pedido_id %>">#<%= o.pedido_id %></a>
+                  <% } else { %>
+                    <span class="muted">—</span>
+                  <% } %>
+                </td>
+                <td class="text-end">
+                  <div style="display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap;">
+                    <a class="btn btn-secondary btn-sm" href="/brindes/orcamentos/<%= o.id %>">Abrir</a>
+                    <a class="btn btn-outline btn-sm" href="/brindes/orcamentos/<%= o.id %>/imprimir" target="_blank">Imprimir</a>
+                  </div>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="margin-top:12px; display:flex; justify-content:flex-end;">
+        <input id="orcSearch" class="inp" placeholder="Buscar por #, cliente, status..." style="max-width:360px;">
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const q = document.getElementById('orcSearch');
+  const tbody = document.getElementById('orcTbody');
+  if (!q || !tbody) return;
+  const rows = Array.from(tbody.querySelectorAll('tr.orc-row'));
+
+  function apply(){
+    const term = (q.value||'').trim().toLowerCase();
+    rows.forEach(r => {
+      const hay = r.getAttribute('data-q') || '';
+      r.style.display = (!term || hay.includes(term)) ? '' : 'none';
+    });
+  }
+  q.addEventListener('input', apply);
+})();
+</script>

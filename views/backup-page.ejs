@@ -1,0 +1,81 @@
+<div class="card">
+  <div class="card-header">
+    <h2>Backup e Restauração</h2>
+    <p class="muted">O sistema faz backup automático diariamente às 20:00. Aqui você pode exportar um backup agora ou restaurar um arquivo de backup.</p>
+  </div>
+
+  <div class="card-body" style="display:flex; gap:16px; flex-wrap:wrap;">
+    <div style="flex:1; min-width:260px;">
+      <h3>Exportar backup agora</h3>
+      <p class="muted">Gera um arquivo do banco para você salvar.</p>
+      <a class="btn btn-primary" href="/backup/exportar">Exportar backup</a>
+    </div>
+
+    <div style="flex:1; min-width:260px;">
+      <h3>Restaurar backup</h3>
+      <p class="muted">Selecione um arquivo <b>.sqlite</b> e restaure. Ao final, o sistema reinicia automaticamente.</p>
+      <form action="/backup/restaurar" method="POST" enctype="multipart/form-data">
+        <input type="file" name="backup" accept=".sqlite,.db" required />
+        <div style="height:10px;"></div>
+        <button type="submit" class="btn btn-danger" onclick="return confirm('Restaurar substitui o banco atual. Deseja continuar?')">Restaurar backup</button>
+      </form>
+    </div>
+
+    <div style="flex:1; min-width:260px;">
+      <h3>Reiniciar sistema</h3>
+      <p class="muted">Use se o sistema travar ou após atualizações. O app fechará e abrirá novamente automaticamente.</p>
+      <button type="button" class="btn btn-secondary" id="btn-restart" onclick="restartSystem()">Reiniciar</button>
+      <div id="restart-msg" class="muted" style="margin-top:10px; display:none;">Reiniciando…</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  async function restartSystem() {
+    if (!confirm('Deseja reiniciar o sistema agora?')) return;
+    const btn = document.getElementById('btn-restart');
+    const msg = document.getElementById('restart-msg');
+    try {
+      btn.disabled = true;
+      msg.style.display = 'block';
+      await fetch('/admin/restart', { method: 'POST' });
+    } catch (e) {
+      alert('Não foi possível reiniciar automaticamente.');
+      btn.disabled = false;
+      msg.style.display = 'none';
+    }
+  }
+</script>
+
+<div class="card" style="margin-top:16px;">
+  <div class="card-header">
+    <h3>Backups locais</h3>
+    <p class="muted">Arquivos salvos em: <code><%= backupsDir %></code></p>
+  </div>
+  <div class="card-body">
+    <% if (!backups || backups.length === 0) { %>
+      <p class="muted">Nenhum backup encontrado.</p>
+    <% } else { %>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Arquivo</th>
+            <th>Data</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+        <% backups.forEach(b => { %>
+          <tr>
+            <td><code><%= b.name %></code></td>
+            <td><%= b.date %></td>
+            <td style="text-align:right;">
+              <a class="btn btn-secondary" href="/backup/baixar?file=<%= encodeURIComponent(b.name) %>">Baixar</a>
+            </td>
+          </tr>
+        <% }) %>
+        </tbody>
+      </table>
+    <% } %>
+  </div>
+</div>

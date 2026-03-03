@@ -1,0 +1,156 @@
+<div class="card">
+  <div class="card-head">
+    <div>
+  <div class="h1">Brindes • Personalizações</div>
+  <div class="muted" style="margin-top:6px">Dica: crie <b>Pacotes</b> para aplicar combinações prontas de personalização nos orçamentos. <a href="/brindes/personalizacoes/pacotes">Abrir pacotes</a></div>
+      <div class="muted">Cadastre tipos (Silk, Laser, UV DTF…) e tabelas de custo por faixa.</div>
+    </div>
+  </div>
+
+  <div class="grid grid-2">
+    <div class="card">
+      <div class="h2">Novo tipo</div>
+      <form class="form" method="post" action="/brindes/personalizacoes/tipos">
+        <label class="field">
+          <span>Nome</span>
+          <input class="input" name="nome" placeholder="Ex: Silk" required>
+        </label>
+        <div class="grid grid-3">
+          <label class="field">
+            <span>Cobra setup?</span>
+            <select class="input" name="cobra_setup">
+              <option value="0">Não</option>
+              <option value="1">Sim</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Prazo extra (dias úteis)</span>
+            <input class="input" type="number" name="prazo_dias" min="0" value="0">
+          </label>
+          <label class="field">
+            <span>Status</span>
+            <select class="input" name="ativo">
+              <option value="1">Ativo</option>
+              <option value="0">Inativo</option>
+            </select>
+          </label>
+        </div>
+        <button class="btn" type="submit">Salvar tipo</button>
+      </form>
+
+      <div class="h2" style="margin-top:14px">Tipos cadastrados</div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Tipo</th>
+              <th class="right">Setup</th>
+              <th class="right">Prazo</th>
+              <th class="right">Status</th>
+              <th class="right">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (!tipos || tipos.length === 0) { %>
+              <tr><td colspan="5" class="muted">Nenhum tipo cadastrado.</td></tr>
+            <% } %>
+
+            <% (tipos || []).forEach((t) => { %>
+              <tr>
+                <td><b><%= t.nome %></b></td>
+                <td class="right"><%= Number(t.cobra_setup||0)===1 ? 'Sim' : 'Não' %></td>
+                <td class="right"><%= Number(t.prazo_dias||0) %> d</td>
+                <td class="right"><%= Number(t.ativo||0)===1 ? 'Ativo' : 'Inativo' %></td>
+                <td class="right">
+                  <form method="post" action="/brindes/personalizacoes/tipos/<%= t.id %>/update" class="row gap" style="display:inline-flex; align-items:center">
+                    <input type="hidden" name="nome" value="<%= t.nome %>">
+                    <select class="input" name="cobra_setup" style="max-width:92px">
+                      <option value="0" <%= Number(t.cobra_setup||0)===0?'selected':'' %>>Setup: Não</option>
+                      <option value="1" <%= Number(t.cobra_setup||0)===1?'selected':'' %>>Setup: Sim</option>
+                    </select>
+                    <input class="input" name="prazo_dias" type="number" min="0" value="<%= Number(t.prazo_dias||0) %>" style="max-width:84px" title="Prazo extra (dias úteis)">
+                    <button class="btn btn-ghost" type="submit">Salvar</button>
+                  </form>
+                  <form method="post" action="/brindes/personalizacoes/tipos/<%= t.id %>/toggle" style="display:inline">
+                    <button class="btn btn-ghost" type="submit"><%= Number(t.ativo||0)===1 ? 'Desativar' : 'Ativar' %></button>
+                  </form>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="h2">Tabela de custos por faixa</div>
+      <form class="form" method="post" action="/brindes/personalizacoes/precos">
+        <label class="field">
+          <span>Tipo</span>
+          <select class="input" name="tipo_id" required>
+            <% (tipos || []).filter(t=>Number(t.ativo||0)===1).forEach((t) => { %>
+              <option value="<%= t.id %>"><%= t.nome %></option>
+            <% }) %>
+          </select>
+        </label>
+
+        <div class="grid grid-3">
+          <label class="field">
+            <span>Qtd min</span>
+            <input class="input" type="number" name="qtd_min" min="1" value="1" required>
+          </label>
+          <label class="field">
+            <span>Qtd max (vazio = ∞)</span>
+            <input class="input" type="number" name="qtd_max" min="1" placeholder="">
+          </label>
+          <label class="field">
+            <span>Custo unit (R$)</span>
+            <input class="input" type="number" step="0.01" min="0" name="custo_unitario" value="0" required>
+          </label>
+        </div>
+
+        <label class="field">
+          <span>Setup padrão (R$)</span>
+          <input class="input" type="number" step="0.01" min="0" name="setup_padrao" value="0" required>
+        </label>
+
+        <button class="btn" type="submit">Adicionar faixa</button>
+        <div class="muted">Dica: se o tipo não cobra setup, deixe setup 0 (o orçamento zera automaticamente quando o tipo está marcado como “não cobra setup”).</div>
+      </form>
+
+      <div class="h2" style="margin-top:14px">Faixas cadastradas</div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Tipo</th>
+              <th class="right">Qtd</th>
+              <th class="right">Custo unit</th>
+              <th class="right">Setup</th>
+              <th class="right">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (!precos || precos.length === 0) { %>
+              <tr><td colspan="5" class="muted">Sem faixas cadastradas.</td></tr>
+            <% } %>
+
+            <% (precos || []).forEach((p) => { %>
+              <tr>
+                <td><b><%= p.tipo_nome %></b></td>
+                <td class="right"><%= p.qtd_min %> a <%= (p.qtd_max==null?'∞':p.qtd_max) %></td>
+                <td class="right">R$ <%= Number(p.custo_unitario||0).toFixed(2) %></td>
+                <td class="right">R$ <%= Number(p.setup_padrao||0).toFixed(2) %></td>
+                <td class="right">
+                  <form method="post" action="/brindes/personalizacoes/precos/<%= p.id %>/remover" style="display:inline">
+                    <button class="btn btn-ghost" type="submit" onclick="return confirm('Remover faixa?')">Remover</button>
+                  </form>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

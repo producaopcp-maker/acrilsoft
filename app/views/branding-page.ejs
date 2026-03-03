@@ -1,0 +1,35 @@
+<div class="card">
+  <h2 style="margin:0 0 10px;">Logo do sistema</h2>
+  <div style="color:var(--muted); margin-bottom:16px;">Esse logo será usado no <b>PDF</b> e na <b>impressão</b> da OP.</div>
+
+  <div style="display:flex; gap:18px; align-items:flex-start; flex-wrap:wrap;">
+    <div style="min-width:240px;">
+      <div style="font-weight:800; margin-bottom:8px;">Pré-visualização</div>
+      <div style="border:1px solid var(--border); border-radius:14px; padding:14px; background:var(--card); width:280px;">
+        <% if (logoUrl) { %>
+          <img src="<%= logoUrl %>" alt="Logo" style="max-width:100%; max-height:90px; object-fit:contain; display:block;">
+        <% } else { %>
+          <div style="color:var(--muted);">Nenhum logo configurado.</div>
+        <% } %>
+      </div>
+      <div style="color:var(--muted); font-size:12px; margin-top:8px;">Recomendado: PNG transparente, altura ~90px.</div>
+    </div>
+
+    <div style="flex:1; min-width:280px;">
+      <div style="font-weight:800; margin-bottom:8px;">Atualizar logo</div>
+      <form method="post" action="/config/branding/logo" enctype="multipart/form-data" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+        <input type="file" name="logo" accept="image/png,image/jpeg" required>
+        <button class="btn btn-primary" type="submit">Salvar</button>
+      </form>
+
+      <form method="post" action="/config/branding/logo/remover" style="margin-top:14px;">
+        <button class="btn btn-secondary" type="submit">Remover logo</button>
+      </form>
+
+      <hr style="margin:18px 0; border:0; border-top:1px solid var(--border);">
+
+      <div style="font-weight:800; margin-bottom:8px;">Dica premium</div>
+      <div style="color:var(--muted);">Você também pode escolher um logo <b>temporário</b> só para um PDF diretamente na tela da OP.</div>
+    </div>
+  </div>
+</div>

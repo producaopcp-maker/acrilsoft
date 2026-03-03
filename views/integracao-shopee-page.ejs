@@ -1,0 +1,109 @@
+
+<div class="page-head">
+  <div>
+    <h1>Integração Shopee</h1>
+    <div class="muted">Conecte uma conta Shopee (1 por instalação), sincronize pedidos e receba atualizações via webhook.</div>
+  </div>
+</div>
+
+<% if (typeof ok !== 'undefined' && ok) { %>
+  <div class="alert success">✅ <%= ok %></div>
+<% } %>
+<% if (typeof err !== 'undefined' && err) { %>
+  <div class="alert error">⚠️ <%= err %></div>
+<% } %>
+
+<div class="grid-2">
+  <div class="card">
+    <h3>Configuração</h3>
+    <form method="POST" action="/integracoes/shopee/salvar" class="form">
+      <label class="row">
+        <span>Ambiente</span>
+        <span class="inline">
+          <input type="checkbox" name="production" value="1" <%= Number(cfg.production||0)===1 ? 'checked' : '' %> />
+          <span class="muted">Produção</span>
+        </span>
+      </label>
+
+      <label>
+        <span>Host (produção)</span>
+        <input name="host_url" value="<%= cfg.host_url || 'https://partner.shopeemobile.com' %>"/>
+      </label>
+
+      <label>
+        <span>Host (sandbox)</span>
+        <input name="sandbox_host_url" value="<%= cfg.sandbox_host_url || 'https://partner.test-stable.shopeemobile.com' %>"/>
+      </label>
+
+      <label>
+        <span>Partner ID</span>
+        <input name="partner_id" value="<%= cfg.partner_id || '' %>" placeholder="ex: 123456"/>
+      </label>
+
+      <label>
+        <span>Partner Key</span>
+        <input name="partner_key" value="<%= cfg.partner_key || '' %>" placeholder="Secret Key"/>
+      </label>
+
+      <label>
+        <span>Redirect URI</span>
+        <input name="redirect_uri" value="<%= cfg.redirect_uri || '' %>" placeholder="<%= suggestedRedirect %>"/>
+        <div class="muted">Sugestão: <code><%= suggestedRedirect %></code></div>
+      </label>
+
+      <label>
+        <span>Shop ID (opcional)</span>
+        <input name="shop_id" value="<%= cfg.shop_id || '' %>" placeholder="(vem no callback)"/>
+      </label>
+
+      <div class="grid-2">
+        <label>
+          <span>Lookback (dias)</span>
+          <input name="sync_lookback_days" type="number" min="1" max="30" value="<%= cfg.sync_lookback_days || 7 %>"/>
+        </label>
+        <label>
+          <span>Limite Sync</span>
+          <input name="sync_limit" type="number" min="10" max="200" value="<%= cfg.sync_limit || 50 %>"/>
+        </label>
+      </div>
+
+      <div class="actions">
+        <button class="btn primary" type="submit">Salvar</button>
+        <a class="btn" href="/integracoes/shopee/connect">Conectar conta (OAuth)</a>
+      </div>
+    </form>
+  </div>
+
+  <div class="card">
+    <h3>Status & Webhook</h3>
+
+    <div class="kv">
+      <div class="k">Conectado</div>
+      <div class="v"><%= cfg.access_token ? "✅ Sim" : "— Não" %></div>
+
+      <div class="k">Shop ID</div>
+      <div class="v"><%= cfg.shop_id || "—" %></div>
+
+      <div class="k">Token expira em</div>
+      <div class="v"><%= cfg.token_expires_at || "—" %></div>
+
+      <div class="k">Último sync</div>
+      <div class="v"><%= cfg.last_sync_at || "—" %></div>
+
+      <div class="k">Webhook URL</div>
+      <div class="v"><code><%= webhookUrl %>?secret=<%= cfg.webhook_secret || "" %></code></div>
+    </div>
+
+    <form method="POST" action="/integracoes/shopee/sync" style="margin-top:12px">
+      <button class="btn primary" type="submit">Sincronizar pedidos agora</button>
+    </form>
+
+    <form method="POST" action="/integracoes/shopee/secret/regen" style="margin-top:8px">
+      <button class="btn" type="submit">Regenerar secret do webhook</button>
+    </form>
+
+    <p class="muted" style="margin-top:12px">
+      Após autorizar, a Shopee redireciona para a Redirect URI com <code>code</code> e <code>shop_id</code>.
+    </p>
+  </div>
+</div>

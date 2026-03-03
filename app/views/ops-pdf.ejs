@@ -1,0 +1,138 @@
+<% const __insumos = (typeof insumosUsados !== 'undefined' && insumosUsados) ? insumosUsados : []; %>
+<% const __servicos = (typeof servicosUsados !== 'undefined' && servicosUsados) ? servicosUsados : []; %>
+<% const __servTotal = (__servicos || []).reduce((acc, r) => acc + (Number(r.preco_unit||0) * Number(r.quantidade||0)), 0); %>
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8"/>
+  <title>OP <%= op.codigo_op %> (PDF)</title>
+  <style><%= pdfCss %></style>
+</head>
+<body>
+  <header class="pdf-header">
+    <div class="brand">
+      <% if (logoDataUri) { %>
+        <img class="logo" src="<%= logoDataUri %>" alt="logo"/>
+      <% } else { %>
+        <div class="logo-placeholder">AMORA</div>
+      <% } %>
+      <div class="brand-text">
+        <div class="brand-title">Ordem de Produção</div>
+        <div class="brand-sub">Estoque Acrílico • Documento A4</div>
+      </div>
+    </div>
+    <div class="op-code">
+      <div class="op-code-label">OP</div>
+      <div class="op-code-value"><%= op.codigo_op %></div>
+    </div>
+  </header>
+
+  <section class="pdf-block">
+    <div class="grid2">
+      <div class="field"><div class="label">Produto final</div><div class="value"><%= op.produto_final || '-' %></div></div>
+      <div class="field"><div class="label">Quantidade</div><div class="value"><%= op.quantidade_final || '-' %></div></div>
+      <div class="field"><div class="label">Cliente</div><div class="value"><%= op.cliente || '-' %></div></div>
+      <div class="field"><div class="label">Vendedor</div><div class="value"><%= op.vendedor_nome || '-' %></div></div>
+      <div class="field"><div class="label">Status</div><div class="value"><%= (op.status || '').replace('_',' ') %></div></div>
+      <div class="field"><div class="label">Prioridade</div><div class="value"><%= op.prioridade || '-' %></div></div>
+      <div class="field"><div class="label">Abertura</div><div class="value mono"><%= op.data_abertura || '-' %></div></div>
+      <div class="field"><div class="label">Entrega</div><div class="value mono"><%= op.data_entrega || '-' %></div></div>
+      <div class="field"><div class="label">Gerado em</div><div class="value mono"><%= geradoEm %></div></div>
+    </div>
+    <% if (op.observacao) { %>
+      <% if (op.observacao_cliente) { %><div class="obs"><span class="label">Obs. Cliente:</span> <%= op.observacao_cliente %></div><% } %>
+    <% if (op.observacao_interna || op.observacao) { %><div class="obs"><span class="label">Obs. Interna:</span> <%= (op.observacao_interna || op.observacao) %></div><% } %>
+    <% } %>
+  </section>
+
+  <section class="pdf-block">
+    <h2>Itens (Chapas / Materiais)</h2>
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>Produto</th>
+          <th>Cód.</th>
+          <th>Esp.</th>
+          <th>Cor</th>
+          <th>Qtd</th>
+          <th>Obs</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (!itens || itens.length === 0) { %>
+          <tr><td colspan="6" class="empty">Nenhum item cadastrado.</td></tr>
+        <% } %>
+        <% (itens || []).forEach(it => { %>
+          <tr>
+            <td><b><%= it.descricao %></b></td>
+            <td class="mono"><%= it.codigo_interno || '-' %></td>
+            <td><%= it.espessura_mm %>mm</td>
+            <td><%= it.cor %></td>
+            <td><b><%= it.quantidade %></b></td>
+            <td><%= it.observacao || '-' %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="pdf-block">
+    <h2>Layout / Imagens anexadas</h2>
+    <% if (!anexos || anexos.length === 0) { %>
+      <div class="muted">Sem imagens anexadas.</div>
+    <% } else { %>
+      <div class="img-grid">
+        <% (anexos || []).slice(0, 8).forEach(a => { %>
+          <div class="img-card">
+            <img src="<%= a.dataUri %>" alt="anexo"/>
+            <div class="img-caption"><%= a.original_name || a.filename %></div>
+          </div>
+        <% }) %>
+      </div>
+      <div class="muted small">(Mostrando até 8 imagens.)</div>
+    <% } %>
+  </section>
+
+  <footer class="pdf-footer">
+    <div>Estoque Acrílico • OP <%= op.codigo_op %></div>
+    <div class="muted small">Gerado automaticamente</div>
+  </footer>
+
+<h3 style="margin-top:16px;">Insumos usados</h3>
+<% if ((__insumos || []).length === 0) { %>
+  <div style="color:#666;">Nenhum insumo registrado nesta OP.</div>
+<% } else { %>
+  <table style="width:100%; border-collapse:collapse;" border="1" cellpadding="6">
+    <tr><th align="left">Insumo</th><th align="left">Quantidade</th></tr>
+    <% (__insumos || []).forEach(function(r){ %>
+      <tr>
+        <td><%= r.nome %> (<%= r.unidade || 'un' %>)</td>
+        <td><%= r.quantidade %></td>
+      </tr>
+    <% }) %>
+  </table>
+<% } %>
+
+<h3 style="margin-top:16px;">Serviços da OP</h3>
+<% if ((__servicos || []).length === 0) { %>
+  <div style="color:#666;">Nenhum serviço registrado nesta OP.</div>
+<% } else { %>
+  <table style="width:100%; border-collapse:collapse;" border="1" cellpadding="6">
+    <tr><th align="left">Serviço</th><th align="left">Qtd</th><th align="left">Preço</th><th align="left">Total</th><th align="left">Obs.</th></tr>
+    <% (__servicos || []).forEach(function(r){ %>
+      <tr>
+        <td><%= r.nome %> (<%= r.unidade || 'un' %>)</td>
+        <td><%= r.quantidade %></td>
+        <td><%= Number(r.preco_unit||0).toFixed(2) %></td>
+        <td><%= (Number(r.preco_unit||0) * Number(r.quantidade||0)).toFixed(2) %></td>
+        <td><%= r.observacao || '' %></td>
+      </tr>
+    <% }) %>
+	    <tr>
+	      <td colspan="3" align="right"><b>Total serviços</b></td>
+	      <td colspan="2"><b><%= __servTotal.toFixed(2) %></b></td>
+	    </tr>
+  </table>
+<% } %>
+</body>
+</html>

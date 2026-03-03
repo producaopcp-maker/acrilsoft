@@ -1,0 +1,277 @@
+<%
+  const isEdit = (modo === 'editar');
+  const c = cliente || {};
+  const end = endereco || {};
+  function val(x){ return (x===null || x===undefined) ? '' : String(x); }
+  const tipo = String(c.tipo || 'PF').toUpperCase();
+%>
+
+<div class="card">
+  <div class="card-head">
+    <div>
+      <div class="h1"><%= isEdit ? ('Editar Cliente #' + c.id) : 'Novo Cliente' %></div>
+      <div class="muted">Cadastre PF/PJ. Endereço é usado na emissão fiscal.</div>
+    </div>
+    <div class="card-actions">
+      <a class="btn btn-ghost" href="/clientes">Voltar</a>
+    </div>
+  </div>
+
+  <form method="post" action="<%= isEdit ? ('/clientes/' + c.id) : '/clientes' %>">
+    <div class="row" style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+      <div>
+        <label class="lbl">Tipo</label>
+        <select class="inp" name="tipo" id="tipoSel">
+          <option value="PF" <%= (tipo==='PF'?'selected':'') %>>PF</option>
+          <option value="PJ" <%= (tipo==='PJ'?'selected':'') %>>PJ</option>
+        </select>
+      </div>
+      <div>
+        <label class="lbl">Código (opcional)</label>
+        <input class="inp" name="codigo" value="<%= val(c.codigo) %>" placeholder="ex: CLI-0001">
+      </div>
+
+      <div>
+        <label class="lbl" id="lblNome"><%= (tipo==='PJ' ? 'Razão social' : 'Nome') %></label>
+        <input class="inp" name="nome" id="nomeInp" value="<%= val(c.nome || c.razao_social) %>" required>
+      </div>
+      <div id="fantasiaWrap">
+        <label class="lbl">Fantasia (opcional)</label>
+        <input class="inp" name="fantasia" id="fantasiaInp" value="<%= val(c.fantasia) %>">
+      </div>
+
+      <div>
+        <label class="lbl" id="lblCpfCnpj"><%= (tipo==='PJ' ? 'CNPJ' : 'CPF') %></label>
+        <input class="inp" name="cpf_cnpj" id="cpfCnpjInp" value="<%= val(c.cpf_cnpj || c.cnpjcpf) %>" inputmode="numeric" autocomplete="off">
+      </div>
+      <div id="ieWrap">
+        <label class="lbl">IE</label>
+        <input class="inp" name="ie" id="ieInp" value="<%= val(c.ie) %>">
+        <label style="display:flex; gap:8px; align-items:center; margin-top:6px;" class="muted">
+          <input type="checkbox" name="ie_isento" id="ieIsentoChk" value="1" <%= (Number(c.ie_isento||0)===1?'checked':'') %>> IE isento
+        </label>
+      </div>
+
+      <div>
+        <label class="lbl">E-mail</label>
+        <input class="inp" name="email" value="<%= val(c.email) %>">
+      </div>
+      <div>
+        <label class="lbl">Telefone</label>
+        <input class="inp" name="telefone" value="<%= val(c.telefone || c.contato) %>">
+      </div>
+      <div>
+        <label class="lbl">WhatsApp</label>
+        <input class="inp" name="whatsapp" value="<%= val(c.whatsapp) %>">
+      </div>
+      <div>
+        <label class="lbl">Contato (legado / opcional)</label>
+        <input class="inp" name="contato" value="<%= val(c.contato) %>">
+      </div>
+    </div>
+
+    <div style="margin-top:12px;">
+      <label class="lbl">Observações</label>
+      <textarea class="inp" name="observacoes" rows="3"><%= val(c.observacoes) %></textarea>
+    </div>
+
+    <div style="margin-top:16px;" class="h2">Endereço principal (Entrega)</div>
+    <div class="row" style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-top:8px;">
+      <div>
+        <label class="lbl">CEP</label>
+        <input class="inp" name="cep" value="<%= val(end.cep) %>">
+      </div>
+      <div>
+        <label class="lbl">Logradouro</label>
+        <input class="inp" name="logradouro" value="<%= val(end.logradouro) %>">
+      </div>
+      <div>
+        <label class="lbl">Número</label>
+        <input class="inp" name="numero" value="<%= val(end.numero) %>">
+      </div>
+      <div>
+        <label class="lbl">Complemento</label>
+        <input class="inp" name="complemento" value="<%= val(end.complemento) %>">
+      </div>
+      <div>
+        <label class="lbl">Bairro</label>
+        <input class="inp" name="bairro" value="<%= val(end.bairro) %>">
+      </div>
+      <div>
+        <label class="lbl">Cidade</label>
+        <input class="inp" name="cidade" value="<%= val(end.cidade) %>">
+      </div>
+      <div>
+        <label class="lbl">UF</label>
+        <input class="inp" name="uf" value="<%= val(end.uf) %>" placeholder="SP">
+      </div>
+      <div>
+        <label class="lbl">Cód. IBGE Município (opcional)</label>
+        <input class="inp" name="codigo_ibge_municipio" value="<%= val(end.codigo_ibge_municipio) %>">
+      </div>
+    </div>
+
+    <div style="margin-top:18px; display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="btn btn-primary" type="submit"><%= isEdit ? 'Salvar alterações' : 'Criar cliente' %></button>
+      <% if (isEdit) { %>
+        <a class="btn btn-ghost" href="/clientes/<%= c.id %>">Abrir</a>
+      <% } %>
+    </div>
+  </form>
+</div>
+
+<script>
+  const tipoSel = document.getElementById('tipoSel');
+  const lblNome = document.getElementById('lblNome');
+  const lblCpfCnpj = document.getElementById('lblCpfCnpj');
+  const cpfCnpjInp = document.getElementById('cpfCnpjInp');
+  const fantasiaWrap = document.getElementById('fantasiaWrap');
+  const ieWrap = document.getElementById('ieWrap');
+  const ieInp = document.getElementById('ieInp');
+  const ieIsentoChk = document.getElementById('ieIsentoChk');
+
+  function onlyDigits(v){ return String(v||'').replace(/\D+/g,''); }
+  function maskCpf(v){
+    const d = onlyDigits(v).slice(0,11);
+    const p1 = d.slice(0,3), p2 = d.slice(3,6), p3 = d.slice(6,9), p4 = d.slice(9,11);
+    let out = p1;
+    if (p2) out += '.' + p2;
+    if (p3) out += '.' + p3;
+    if (p4) out += '-' + p4;
+    return out;
+  }
+  function maskCnpj(v){
+    const d = onlyDigits(v).slice(0,14);
+    const p1 = d.slice(0,2), p2 = d.slice(2,5), p3 = d.slice(5,8), p4 = d.slice(8,12), p5 = d.slice(12,14);
+    let out = p1;
+    if (p2) out += '.' + p2;
+    if (p3) out += '.' + p3;
+    if (p4) out += '/' + p4;
+    if (p5) out += '-' + p5;
+    return out;
+  }
+
+  function updateClienteUI(){
+    const t = String(tipoSel?.value || 'PF').toUpperCase();
+    if (lblNome) lblNome.textContent = (t === 'PJ') ? 'Razão social' : 'Nome';
+    if (lblCpfCnpj) lblCpfCnpj.textContent = (t === 'PJ') ? 'CNPJ' : 'CPF';
+    if (cpfCnpjInp){
+      cpfCnpjInp.placeholder = (t === 'PJ') ? '00.000.000/0000-00' : '000.000.000-00';
+      cpfCnpjInp.maxLength = (t === 'PJ') ? 18 : 14;
+      // re-mask current value when switching
+      cpfCnpjInp.value = (t === 'PJ') ? maskCnpj(cpfCnpjInp.value) : maskCpf(cpfCnpjInp.value);
+    }
+    // Campos que só fazem sentido pra PJ
+    const showPj = (t === 'PJ');
+    if (fantasiaWrap) fantasiaWrap.style.display = showPj ? '' : 'none';
+    if (ieWrap) ieWrap.style.display = showPj ? '' : 'none';
+    if (!showPj){
+      if (ieInp) ieInp.value = '';
+      if (ieIsentoChk) ieIsentoChk.checked = false;
+    }
+  }
+
+  tipoSel?.addEventListener('change', updateClienteUI);
+  cpfCnpjInp?.addEventListener('input', () => {
+    const t = String(tipoSel?.value || 'PF').toUpperCase();
+    const cur = cpfCnpjInp.value;
+    cpfCnpjInp.value = (t === 'PJ') ? maskCnpj(cur) : maskCpf(cur);
+  });
+  updateClienteUI();
+
+  // ===== Auto preenchimento CEP / CNPJ =====
+  const cepInp = document.querySelector('input[name="cep"]');
+  const logradouroInp = document.querySelector('input[name="logradouro"]');
+  const numeroInp = document.querySelector('input[name="numero"]');
+  const complementoInp = document.querySelector('input[name="complemento"]');
+  const bairroInp = document.querySelector('input[name="bairro"]');
+  const cidadeInp = document.querySelector('input[name="cidade"]');
+  const ufInp = document.querySelector('input[name="uf"]');
+
+  function maskCep(v){
+    const d = onlyDigits(v).slice(0,8);
+    if (d.length <= 5) return d;
+    return d.slice(0,5) + '-' + d.slice(5);
+  }
+
+  function setIfEmpty(el, value){
+    if (!el) return;
+    if (String(el.value || '').trim()) return;
+    el.value = value || '';
+  }
+
+  async function buscarCepAuto(){
+    if (!cepInp) return;
+    const cep = onlyDigits(cepInp.value);
+    if (cep.length !== 8) return;
+
+    try {
+      const r = await fetch(`/api/cep/${cep}`);
+      if (!r.ok) return;
+      const d = await r.json();
+
+      setIfEmpty(logradouroInp, d.logradouro);
+      setIfEmpty(bairroInp, d.bairro);
+      setIfEmpty(cidadeInp, d.cidade);
+      setIfEmpty(ufInp, d.uf);
+
+      if (numeroInp) numeroInp.focus();
+    } catch(e){}
+  }
+
+  async function buscarCnpjAuto(){
+    const t = String(tipoSel?.value || 'PF').toUpperCase();
+    if (t !== 'PJ') return;
+    if (!cpfCnpjInp) return;
+
+    const cnpj = onlyDigits(cpfCnpjInp.value);
+    if (cnpj.length !== 14) return;
+
+    try {
+      const r = await fetch(`/api/cnpj/${cnpj}`);
+      if (!r.ok) return;
+      const d = await r.json();
+
+      // Dados empresa
+      const nomeInp = document.getElementById('nomeInp');
+      setIfEmpty(nomeInp, d.razao_social);
+      setIfEmpty(document.getElementById('fantasiaInp'), d.nome_fantasia);
+
+      // Contato
+      setIfEmpty(document.querySelector('input[name="telefone"]'), d.telefone);
+      setIfEmpty(document.querySelector('input[name="email"]'), d.email);
+
+      // Endereço
+      setIfEmpty(cepInp, d.cep ? maskCep(d.cep) : '');
+      setIfEmpty(logradouroInp, d.logradouro);
+      setIfEmpty(numeroInp, d.numero);
+      setIfEmpty(complementoInp, d.complemento);
+      setIfEmpty(bairroInp, d.bairro);
+      setIfEmpty(cidadeInp, d.cidade);
+      setIfEmpty(ufInp, d.uf);
+
+    } catch(e){}
+  }
+
+  // CEP: máscara + busca
+  cepInp?.addEventListener('input', () => {
+    const cur = cepInp.value;
+    cepInp.value = maskCep(cur);
+    if (onlyDigits(cepInp.value).length === 8) buscarCepAuto();
+  });
+  cepInp?.addEventListener('blur', buscarCepAuto);
+
+  // CNPJ: buscar ao completar 14 dígitos / blur (somente PJ)
+  cpfCnpjInp?.addEventListener('blur', buscarCnpjAuto);
+  cpfCnpjInp?.addEventListener('input', () => {
+    const t = String(tipoSel?.value || 'PF').toUpperCase();
+    if (t === 'PJ' && onlyDigits(cpfCnpjInp.value).length === 14) buscarCnpjAuto();
+  });
+
+  // Ao trocar PF/PJ, se virar PJ e já tiver CNPJ completo, consulta
+  tipoSel?.addEventListener('change', () => {
+    const t = String(tipoSel?.value || 'PF').toUpperCase();
+    if (t === 'PJ' && cpfCnpjInp && onlyDigits(cpfCnpjInp.value).length === 14) buscarCnpjAuto();
+  });
+
+</script>

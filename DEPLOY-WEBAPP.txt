@@ -1,0 +1,28 @@
+WEBAPP (Express) – como rodar e publicar (Render/Railway)
+
+1) Rodar local
+   - npm install
+   - npm start
+   - Abra: http://localhost:3000
+
+2) Variáveis de ambiente (produção)
+   Recomendado usar Postgres (Render/Railway).
+   - DATABASE_URL = sua connection string Postgres (ex: postgresql://user:pass@host:5432/db)
+   - PG_SSL=true (opcional; se seu provedor exigir SSL)
+   - SESSION_SECRET=uma_senha_forte (opcional; recomendado)
+   - DATA_DIR=/var/data (opcional; onde guardar o SQLite local caso use fallback)
+
+3) Render
+   - Build: npm install
+   - Start: npm start
+   - Adicione DATABASE_URL nas Environment Variables
+
+4) Railway
+   - Basta subir o repo/projeto
+   - Garanta DATABASE_URL nas variables (Railway Postgres já fornece)
+   - Start command: npm start
+
+Notas
+- Este projeto foi migrado para WEBAPP (sem Electron). 
+- O modo "offline-first" via SQLite continua existindo como fallback no servidor,
+  mas em produção o ideal é usar Postgres ONLINE.

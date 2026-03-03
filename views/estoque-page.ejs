@@ -1,0 +1,65 @@
+<div class="card">
+  <%- include('components/page-header', {
+    title: 'Estoque',
+    status: '',
+    subtitle: 'Controle de chapas (m²), mínimos e movimentações.',
+    meta: [
+      { label: 'Itens', value: (kpis.total_itens || 0), strong: false },
+      { label: 'Abaixo do mínimo', value: (kpis.abaixo_minimo || 0), strong: false },
+      { label: 'Área total', value: `${(fmtBR ? fmtBR(kpis.total_m2 || 0, 2, false) : Number(kpis.total_m2 || 0).toFixed(2))} m²`, strong: true },
+    ],
+    primaryActions: [],
+    secondaryActions: []
+  }) %>
+
+  <div class="kpis" style="margin-top:10px;">
+    <div class="kpi"><div class="kpi-label">Itens cadastrados</div><div class="kpi-value"><%= kpis.total_itens || 0 %></div></div>
+    <div class="kpi kpi-warn"><div class="kpi-label">Abaixo do mínimo</div><div class="kpi-value"><%= kpis.abaixo_minimo || 0 %></div></div>
+    <div class="kpi">
+      <div class="kpi-label">Área total (m²)</div>
+      <div class="kpi-value"><%= fmtBR ? fmtBR(kpis.total_m2 || 0, 2, false) : Number(kpis.total_m2 || 0).toFixed(2) %></div>
+      <div class="muted" style="margin-top:4px;">(<%= (fmtChapas ? fmtChapas(kpis.total_chapas || 0) : (kpis.total_chapas || 0)) %> chapas)</div>
+    </div>
+    <div class="kpi"><div class="kpi-label">Mov. no mês</div><div class="kpi-value"><%= movMes.movs || 0 %></div></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head">
+    <div><div class="h1">Estoque de Chapas</div><div class="muted">Pesquise por descrição, cor ou código interno</div></div>
+    <form class="search" method="get" action="/estoque">
+      <input name="q" value="<%= q || '' %>" placeholder="Buscar..." />
+      <button class="btn btn-secondary" type="submit">Buscar</button>
+      <a class="btn btn-ghost" href="/estoque">Limpar</a>
+    </form>
+  </div>
+
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Cód.</th><th>Descrição</th><th>Esp.</th><th>Cor</th><th>Dimensão</th><th>Local</th><th>Estoque</th><th>Mín.</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+        <% if (!produtos || produtos.length === 0) { %><tr><td colspan="10" class="td-empty">Nenhum item encontrado.</td></tr><% } %>
+        <% (produtos || []).forEach(p => { %>
+          <tr class="<%= p.baixo ? 'row-alert' : '' %>">
+            <td class="mono"><%= p.codigo_interno || '-' %></td>
+            <td><b><%= p.descricao %></b></td>
+            <td><%= p.espessura_mm %>mm</td>
+            <td><%= p.cor %></td>
+            <td><%= mmToM(p.largura_mm) %> x <%= mmToM(p.altura_mm) %> m</td>
+            <td><%= p.localizacao || '-' %></td>
+            <td>
+              <b><%= fmtBR ? fmtBR(p.estoqueM2 || 0, 2, false) : Number(p.estoqueM2 || 0).toFixed(2) %> m²</b><br/>
+              <span class="muted">(<%= fmtChapas ? fmtChapas(p.estoque_atual) : (p.estoque_atual ?? 0) %> chapas)</span>
+            </td>
+            <td>
+              <%= fmtBR ? fmtBR(p.minimoM2 || 0, 2, false) : Number(p.minimoM2 || 0).toFixed(2) %> m²<br/>
+              <span class="muted">(<%= fmtChapas ? fmtChapas(p.estoque_minimo) : (p.estoque_minimo ?? 0) %> chapas)</span>
+            </td>
+            <td><span class="chip <%= p.baixo ? 'chip-danger' : 'chip-ok' %>"><%= p.baixo ? 'ABAIXO' : 'OK' %></span></td>
+            <td class="td-actions"><a class="btn btn-small" href="/movimentar/<%= p.id %>">Movimentar</a></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>

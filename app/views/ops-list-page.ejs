@@ -1,0 +1,73 @@
+<% const arquivadasVal = (typeof arquivadas !== "undefined" && arquivadas) ? true : false; %>
+<% const _status = (typeof status !== "undefined" && status) ? String(status) : ""; %>
+<% const statusVal = (typeof status !== "undefined" && status !== null) ? String(status) : ""; %>
+<div class="card">
+  <div class="card-head">
+    <div>
+      <div class="h1"><%= arquivadasVal ? "Arquivo de OPs" : "Ordens de Produção" %></div>
+      <div class="muted"><%= arquivadasVal ? "Somente OPs arquivadas" : "Crie, acompanhe status e itens" %></div>
+    </div>
+    <% if (arquivadasVal) { %>
+      <a class="btn btn-ghost" href="/ops">Voltar</a>
+    <% } else { %>
+      <a class="btn btn-ghost" href="/ops/arquivadas">Arquivo</a>
+      <a class="btn btn-primary" href="/ops/nova">Nova OP</a>
+    <% } %>
+  </div>
+
+  <form class="search" method="get" action="<%= arquivadasVal ? "/ops/arquivadas" : "/ops" %>" style="margin-bottom:12px;">
+    <input name="q" value="<%= q || '' %>" placeholder="Buscar por código ou cliente..." />
+    <select name="status">
+      <option value="">Todos status</option>
+      <option value="ABERTA" <%= _status==="ABERTA" ? "selected" : "" %>>ABERTA</option>
+      <option value="EM_PRODUCAO" <%= _status==="EM_PRODUCAO" ? "selected" : "" %>>EM PRODUÇÃO</option>
+      <option value="FINALIZADA" <%= _status==="FINALIZADA" ? "selected" : "" %>>FINALIZADA</option>
+      <option value="CANCELADA" <%= _status==="CANCELADA" ? "selected" : "" %>>CANCELADA</option>
+    </select>
+    <button class="btn btn-secondary" type="submit">Filtrar</button>
+    <a class="btn btn-ghost" href="<%= arquivadasVal ? "/ops/arquivadas" : "/ops" %>">Limpar</a>
+  </form>
+
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Vendedor</th>
+          <th>Cliente</th>
+          <th>Pedido de venda</th>
+          <th>Produto final</th>
+          <th>Qtd</th>
+          <th>Status</th>
+          <th>Abertura</th>
+          <th>Entrega</th>
+          <th>Prioridade</th>
+          <th>Itens</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (!ops || ops.length === 0) { %><tr><td colspan="12" class="td-empty">Nenhuma OP.</td></tr><% } %>
+        <% (ops || []).forEach(op => { %>
+          <tr class="<%= op.atrasada ? 'row-late' : '' %>">
+            <td class="mono"><b><%= op.codigo_op %></b></td>
+            <td><%= op.vendedor_nome || '-' %></td>
+            <td><%= op.cliente || "-" %></td>
+            <td class="mono"><%= op.pedido_venda || "-" %></td>
+            <td><%= op.produto_final || "-" %></td>
+            <td><b><%= op.quantidade_final || "-" %></b></td>
+            <td><span class="chip <%= (op.status==="FINALIZADA") ? "chip-ok" : ((op.status==="CANCELADA") ? "chip-danger" : ((op.status==="EM_PRODUCAO") ? "chip-info" : "chip-warn")) %>">
+              <%= (op.status || "-").replace(/_/g," ") %>
+            </span></td>
+            <td class="mono"><%= op.data_abertura || '-' %></td>
+            <td class="mono"><%= op.data_entrega || '-' %></td>
+            <td><%= op.prioridade %></td>
+<td><b><%= op.itens_count || 0 %></b></td>
+<td class="td-actions"><% if (arquivadasVal) { %><form method="POST" action="/ops/<%= op.id %>/excluir" class="inline-form" onsubmit="return confirm(\'Tem certeza? Excluir esta OP do Arquivo? Isso apaga definitivamente.\');"><button class="btn btn-small btn-danger" type="submit">Excluir</button></form><% } %>
+  <a class="btn btn-small" href="/ops/<%= op.id %>">Abrir</a></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>

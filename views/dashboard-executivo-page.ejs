@@ -1,0 +1,356 @@
+<div class="bi-exec">
+  <div class="bi-exec__header">
+    <div>
+      <div class="bi-exec__title">Executivo</div>
+      <div class="bi-exec__subtitle">Vendas por canal, evolução no tempo, ticket médio, margem estimada e ranking.</div>
+    </div>
+
+    <form class="bi-exec__filters" method="get" action="/dashboard#executivo">
+      <label class="bi-field">
+        <span>De</span>
+        <input class="bi-input" type="date" name="de" value="<%= filtros.de %>">
+      </label>
+      <label class="bi-field">
+        <span>Até</span>
+        <input class="bi-input" type="date" name="ate" value="<%= filtros.ate %>">
+      </label>
+      <label class="bi-field">
+        <span>Canal</span>
+        <select class="bi-select" name="canal">
+          <option value="" <%= !filtros.canal ? 'selected' : '' %>>Todos</option>
+          <option value="MANUAL" <%= filtros.canal==='MANUAL' ? 'selected' : '' %>>Manual</option>
+          <option value="MERCADOLIVRE" <%= filtros.canal==='MERCADOLIVRE' ? 'selected' : '' %>>Mercado Livre</option>
+          <option value="SHOPEE" <%= filtros.canal==='SHOPEE' ? 'selected' : '' %>>Shopee</option>
+          <option value="BLING" <%= filtros.canal==='BLING' ? 'selected' : '' %>>Bling</option>
+        </select>
+      </label>
+      <label class="bi-field">
+        <span>Status</span>
+        <select class="bi-select" name="status">
+          <option value="FATURADO,ENTREGUE" <%= filtros.status==='FATURADO,ENTREGUE' ? 'selected' : '' %>>Faturado + Entregue</option>
+          <option value="APROVADO,EM_PRODUCAO,PRONTO,FATURADO,ENTREGUE" <%= filtros.status==='APROVADO,EM_PRODUCAO,PRONTO,FATURADO,ENTREGUE' ? 'selected' : '' %>>Pipeline (Aprovado → Entregue)</option>
+          <option value="" <%= !filtros.status ? 'selected' : '' %>>Todos</option>
+        </select>
+      </label>
+
+      <button class="bi-btn" type="submit">Atualizar</button>
+      <a class="bi-btn bi-btn--ghost" href="/dashboard#executivo">Limpar</a>
+    </form>
+  </div>
+
+  <% const fmtDelta = (v) => (typeof v === 'number' && isFinite(v)) ? `${v>=0?'+':''}${v.toFixed(1)}%` : '—'; %>
+  <% const fmtPP = (v) => (typeof v === 'number' && isFinite(v)) ? `${v>=0?'+':''}${v.toFixed(1)}pp` : '—'; %>
+
+  <div class="bi-kpis">
+    <div class="bi-kpi">
+      <div class="bi-kpi__top">
+        <span class="bi-kpi__label">Faturamento</span>
+        <span class="bi-pill <%= (kpisDelta?.faturamento_pct ?? 0) >= 0 ? 'bi-pill--up' : 'bi-pill--down' %>"><%= fmtDelta(kpisDelta?.faturamento_pct) %></span>
+      </div>
+      <div class="bi-kpi__value">R$ <%= kpis.faturamento_fmt %></div>
+      <div class="bi-kpi__foot">vs período anterior</div>
+    </div>
+
+    <div class="bi-kpi">
+      <div class="bi-kpi__top">
+        <span class="bi-kpi__label">Pedidos</span>
+        <span class="bi-pill <%= (kpisDelta?.pedidos_pct ?? 0) >= 0 ? 'bi-pill--up' : 'bi-pill--down' %>"><%= fmtDelta(kpisDelta?.pedidos_pct) %></span>
+      </div>
+      <div class="bi-kpi__value"><%= kpis.pedidos %></div>
+      <div class="bi-kpi__foot">total no período</div>
+    </div>
+
+    <div class="bi-kpi">
+      <div class="bi-kpi__top">
+        <span class="bi-kpi__label">Ticket médio</span>
+        <span class="bi-pill <%= (kpisDelta?.ticket_pct ?? 0) >= 0 ? 'bi-pill--up' : 'bi-pill--down' %>"><%= fmtDelta(kpisDelta?.ticket_pct) %></span>
+      </div>
+      <div class="bi-kpi__value">R$ <%= kpis.ticket_fmt %></div>
+      <div class="bi-kpi__foot">por pedido</div>
+    </div>
+
+    <div class="bi-kpi">
+      <div class="bi-kpi__top">
+        <span class="bi-kpi__label">Margem estimada</span>
+        <span class="bi-pill <%= (kpisDelta?.margem_pp ?? 0) >= 0 ? 'bi-pill--up' : 'bi-pill--down' %>"><%= fmtPP(kpisDelta?.margem_pp) %></span>
+      </div>
+      <div class="bi-kpi__value"><%= kpis.margem_pct_fmt %></div>
+      <div class="bi-kpi__foot">Cobertura de custo: <%= kpis.cobertura_custo %></div>
+    </div>
+  </div>
+
+  <div class="bi-grid">
+    <div class="bi-card bi-card--span2">
+      <div class="bi-card__head">
+        <div>
+          <div class="bi-card__title">Faturamento no tempo</div>
+          <div class="bi-card__sub">Por dia</div>
+        </div>
+      </div>
+      <div class="bi-card__body">
+        <div class="bi-chart <%= (!serieDias || serieDias.length===0) ? 'bi-chart--empty' : '' %>">
+          <canvas id="biChartFaturamento"></canvas>
+        </div>
+        <% if (!serieDias || serieDias.length === 0) { %>
+          <div class="muted" style="margin-top:10px;">Sem dados no período.</div>
+        <% } %>
+      </div>
+    </div>
+
+    <div class="bi-card">
+      <div class="bi-card__head">
+        <div>
+          <div class="bi-card__title">Vendas por canal</div>
+          <div class="bi-card__sub">Distribuição</div>
+        </div>
+      </div>
+      <div class="bi-card__body">
+        <div class="bi-chart bi-chart--sm <%= (!porCanal || porCanal.length===0) ? 'bi-chart--empty' : '' %>">
+          <canvas id="biChartCanais"></canvas>
+        </div>
+        <% if (!porCanal || porCanal.length === 0) { %>
+          <div class="muted" style="margin-top:10px;">Sem dados no período.</div>
+        <% } %>
+      </div>
+    </div>
+
+    <div class="bi-card">
+      <div class="bi-card__head">
+        <div>
+          <div class="bi-card__title">Top produtos</div>
+          <div class="bi-card__sub">por faturamento</div>
+        </div>
+      </div>
+      <div class="bi-card__body">
+        <table class="bi-table">
+          <thead>
+            <tr>
+              <th>Produto</th>
+              <th class="t-right">Qtd</th>
+              <th class="t-right">R$</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% (topProdutos || []).slice(0,7).forEach((p)=>{ %>
+              <tr>
+                <td><%= p.produto %></td>
+                <td class="t-right"><%= p.quantidade %></td>
+                <td class="t-right">R$ <%= p.total_fmt %></td>
+              </tr>
+            <% }) %>
+            <% if (!topProdutos || topProdutos.length===0) { %>
+              <tr><td colspan="3" class="muted">Sem dados no período.</td></tr>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="bi-grid bi-grid--2" style="margin-top:12px;">
+    <div class="bi-card">
+      <div class="bi-card__head">
+        <div>
+          <div class="bi-card__title">Funil por status</div>
+          <div class="bi-card__sub">Pedidos e total</div>
+        </div>
+      </div>
+      <div class="bi-card__body">
+        <table class="bi-table">
+          <thead>
+            <tr>
+              <th>Status</th>
+              <th class="t-right">Pedidos</th>
+              <th class="t-right">R$</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% (funil || []).forEach((r)=>{ %>
+              <tr>
+                <td><span class="bi-chip"><%= r.status %></span></td>
+                <td class="t-right"><%= r.pedidos %></td>
+                <td class="t-right">R$ <%= r.total_fmt %></td>
+              </tr>
+            <% }) %>
+            <% if (!funil || funil.length===0) { %>
+              <tr><td colspan="3" class="muted">Sem dados no período.</td></tr>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="bi-card">
+      <div class="bi-card__head">
+        <div>
+          <div class="bi-card__title">Top clientes</div>
+          <div class="bi-card__sub">por faturamento</div>
+        </div>
+      </div>
+      <div class="bi-card__body">
+        <table class="bi-table">
+          <thead>
+            <tr>
+              <th>Cliente</th>
+              <th class="t-right">Pedidos</th>
+              <th class="t-right">R$</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% (topClientes || []).slice(0,10).forEach((c)=>{ %>
+              <tr>
+                <td><%= c.cliente %></td>
+                <td class="t-right"><%= c.pedidos %></td>
+                <td class="t-right">R$ <%= c.total_fmt %></td>
+              </tr>
+            <% }) %>
+            <% if (!topClientes || topClientes.length===0) { %>
+              <tr><td colspan="3" class="muted">Sem dados no período.</td></tr>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+  (function(){
+    const serieDias = <%- JSON.stringify(serieDias || []) %>;
+    const porCanal = <%- JSON.stringify(porCanal || []) %>;
+
+    const fmtBR = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    const el1 = document.getElementById('biChartFaturamento');
+    if (el1 && window.Chart && serieDias.length) {
+      new Chart(el1, {
+        type: 'line',
+        data: {
+          labels: serieDias.map(x => x.dia),
+          datasets: [{
+            label: 'Faturamento',
+            data: serieDias.map(x => x.total),
+            tension: 0.35,
+            borderWidth: 2,
+            pointRadius: 2,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: { label: (ctx) => 'R$ ' + fmtBR.format(ctx.parsed.y || 0) }
+            }
+          },
+          scales: {
+            y: { ticks: { callback: v => 'R$ ' + fmtBR.format(v) } },
+            x: { ticks: { maxRotation: 0, autoSkip: true } }
+          }
+        }
+      });
+    }
+
+    const el2 = document.getElementById('biChartCanais');
+    if (el2 && window.Chart && porCanal.length) {
+      new Chart(el2, {
+        type: 'bar',
+        data: {
+          labels: porCanal.map(x => (x.canal_label || x.canal || '').toUpperCase()),
+          datasets: [{
+            label: 'Total',
+            data: porCanal.map(x => x.total || 0),
+            borderWidth: 1,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: { label: (ctx) => 'R$ ' + fmtBR.format(ctx.parsed.y || 0) }
+            }
+          },
+          scales: {
+            y: { ticks: { callback: v => 'R$ ' + fmtBR.format(v) } },
+            x: { ticks: { maxRotation: 0, autoSkip: false } }
+          }
+        }
+      });
+    }
+  })();
+</script>
+
+<style>
+  /* ===== BI Executivo (escopado) ===== */
+  .bi-exec{padding:16px;border-radius:18px;border:1px solid var(--border);background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.02));box-shadow:var(--shadow-sm);}
+  .bi-exec__header{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap;margin-bottom:12px;}
+  .bi-exec__title{font-size:18px;font-weight:900;letter-spacing:.2px;}
+  .bi-exec__subtitle{font-size:12px;color:var(--muted);margin-top:2px;}
+
+  .bi-exec__filters{display:flex;gap:10px;align-items:end;flex-wrap:wrap;}
+  .bi-field{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);}
+  .bi-input,.bi-select{height:36px;padding:0 10px;border-radius:12px;border:1px solid var(--border);background:var(--card);color:inherit;min-width:140px;}
+  .bi-btn{height:36px;padding:0 12px;border-radius:12px;border:1px solid var(--border);background:var(--card-2);cursor:pointer;font-weight:800;transition:transform .15s ease, filter .15s ease;display:inline-flex;align-items:center;justify-content:center;}
+  .bi-btn:hover{transform:translateY(-1px);filter:brightness(1.04);}
+  .bi-btn--ghost{background:transparent;}
+
+  /* KPIs responsivos: evita overflow horizontal em telas menores */
+  .bi-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:10px 0 12px;}
+  .bi-kpi{border-radius:16px;border:1px solid var(--border);background:var(--card);padding:14px;box-shadow:var(--shadow-sm);}
+  .bi-kpi__top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;}
+  .bi-kpi__label{font-size:12px;color:var(--muted);}
+  .bi-kpi__value{font-size:22px;font-weight:900;letter-spacing:.2px;}
+  .bi-kpi__foot{font-size:12px;color:var(--muted);margin-top:6px;}
+
+  .bi-pill{font-size:12px;padding:4px 8px;border-radius:999px;border:1px solid var(--border);background:var(--card-2);}
+  .bi-pill--up{border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.12);} 
+  .bi-pill--down{border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.12);} 
+
+  /*
+    Grid responsivo (auto-fit): evita "buracos" quando algum card não aparece/tem pouco conteúdo.
+    Os cards se reorganizam automaticamente conforme a largura da tela.
+  */
+  .bi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:12px;}
+  /* Mantido por compatibilidade, mas com comportamento responsivo também */
+  .bi-grid--2{grid-template-columns:repeat(auto-fit,minmax(420px,1fr));}
+  .bi-card{border-radius:16px;border:1px solid var(--border);background:var(--card);box-shadow:var(--shadow-sm);overflow:hidden;}
+  .bi-card--span2{grid-column:span 2;}
+  .bi-card__head{padding:12px 14px;border-bottom:1px solid var(--border);}
+  .bi-card__title{font-weight:900;}
+  .bi-card__sub{font-size:12px;color:var(--muted);margin-top:2px;}
+  .bi-card__body{padding:12px 14px;}
+
+  /* Charts: dá altura previsível pro Chart.js (maintainAspectRatio:false usa a altura do container) */
+  .bi-chart{height:240px;}
+  .bi-chart--sm{height:210px;}
+  .bi-chart--empty{height:140px;}
+  .bi-chart canvas{width:100% !important;height:100% !important;}
+
+  .bi-table{width:100%;border-collapse:collapse;}
+  .bi-table th,.bi-table td{padding:10px 0;border-bottom:1px solid var(--border);}
+  .bi-table th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;}
+  .t-right{text-align:right;}
+  .bi-chip{display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;border:1px solid var(--border);background:var(--card-2);font-size:12px;}
+
+  @media (max-width: 1200px){
+    .bi-chart{height:220px;}
+    .bi-chart--sm{height:200px;}
+  }
+  @media (max-width: 980px){
+    .bi-grid{grid-template-columns:1fr;}
+    .bi-grid--2{grid-template-columns:1fr;}
+    .bi-card--span2{grid-column:auto;}
+    .bi-chart{height:210px;}
+    .bi-chart--sm{height:190px;}
+  }
+  @media (max-width: 640px){
+    .bi-input,.bi-select{min-width: 100%;}
+    .bi-chart{height:200px;}
+    .bi-chart--sm{height:180px;}
+  }
+</style>

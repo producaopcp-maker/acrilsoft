@@ -1,0 +1,100 @@
+<div class="card">
+  <div class="card-body">
+
+    <% if (ok) { %>
+      <div class="alert alert-ok">Configuração salva. Para aplicar em todos os módulos, reinicie o sistema.</div>
+    <% } %>
+
+    <% if (err) { %>
+      <div class="alert alert-warn"><%= err %></div>
+    <% } %>
+
+    <div class="muted" style="line-height:1.5; margin-bottom:12px;">
+      <b>Modo recomendado:</b> OAuth 2.0 (automaticamente renova o token com <i>refresh_token</i>).<br/>
+      <b>Fallback:</b> Token manual (Bearer) — use só se precisar.
+    </div>
+
+    <div class="card" style="margin:0 0 14px 0;">
+      <div class="card-body" style="padding:12px;">
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+          <div>
+            <b>Status OAuth:</b>
+            <% if (blingHasOauth) { %>
+              <span class="badge badge-ok" style="margin-left:6px;">Conectado</span>
+            <% } else { %>
+              <span class="badge" style="margin-left:6px;">Não conectado</span>
+            <% } %>
+          </div>
+          <div class="muted" style="margin-left:auto;">
+            Callback: <code><%= blingCallbackUrl || '' %></code>
+          </div>
+        </div>
+
+        <% if (blingHasOauth) { %>
+          <div class="muted" style="margin-top:8px;">
+            Expira em: <%= blingExpiresAt ? (new Date(Number(blingExpiresAt))).toLocaleString() : '-' %>
+            &nbsp;•&nbsp; Última autenticação: <%= blingLastAuthAt ? (new Date(Number(blingLastAuthAt))).toLocaleString() : '-' %>
+          </div>
+        <% } %>
+
+        <div class="muted" style="margin-top:8px;">
+          No Bling, configure a URL de redirecionamento do seu App exatamente igual ao <b>Callback</b> acima.
+        </div>
+
+        <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
+          <a class="btn" href="/integracoes/bling/oauth/iniciar">Conectar no Bling (OAuth)</a>
+
+          <form method="POST" action="/integracoes/bling/oauth/desconectar" style="margin:0;">
+            <button class="btn btn-outline" type="submit">Desconectar</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <form method="POST" action="/config/bling/salvar" id="blingCfgForm">
+      <div class="form-group">
+        <label>Client ID</label>
+        <input class="input" type="text" name="blingClientId" value="<%= blingClientId || '' %>" placeholder="Client ID do aplicativo no Bling" />
+      </div>
+
+      <div class="form-group">
+        <label>Client Secret</label>
+        <input class="input" type="password" name="blingClientSecret" value="<%= blingClientSecret || '' %>" placeholder="Client Secret do aplicativo no Bling" />
+        <small class="muted">Fica salvo no <code>config.json</code> do sistema. Mantenha em segredo.</small>
+      </div>
+
+      <hr style="margin:14px 0; opacity:.25"/>
+
+      <div class="form-group">
+        <label>Token manual (Bearer) — opcional</label>
+        <input class="input" type="password" name="blingToken" value="<%= blingToken || '' %>" placeholder="Bearer token (access_token)" />
+        <small class="muted">Se o OAuth estiver conectado, o sistema ignora este campo (usa token automático). Use apenas como quebra-galho.</small>
+      </div>
+
+      <div class="form-group" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+        <button class="btn" type="submit">Salvar</button>
+        <button class="btn btn-outline" type="submit" formaction="/config/bling/testar">Testar</button>
+
+        <label style="display:flex; align-items:center; gap:10px; margin-left:auto;">
+          <input type="checkbox" name="restart" value="1">
+          <span>Reiniciar ao salvar</span>
+        </label>
+      </div>
+    </form>
+
+    <hr style="margin:18px 0; opacity:.25"/>
+
+    <div class="muted" style="line-height:1.5">
+      <b>O que será importado:</b>
+      <ul style="margin:8px 0 0 18px">
+        <li><b>Clientes (contatos)</b>: Código, Nome/Razão social, CNPJ/CPF, Contato e Endereço</li>
+        <li><b>Pedidos de venda</b>: Número, Cliente, Itens, Quantidade, Data</li>
+        <li><b>Situação do pedido</b>: Em aberto, Aprovado, Atendido, Cancelado, Faturado</li>
+      </ul>
+      <div style="margin-top:10px">
+        Dica: depois de conectar, você pode chamar <code>/integracoes/bling/pedidos</code> e importar os pedidos para gerar OP.
+      </div>
+    </div>
+
+  </div>
+</div>

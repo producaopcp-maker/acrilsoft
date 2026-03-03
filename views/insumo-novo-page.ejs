@@ -1,0 +1,25 @@
+
+<div class="card">
+  <div class="h1">Cadastrar insumo</div>
+  <div class="muted">Ex.: Cola, fita dupla-face, álcool, flanela, etc.</div>
+
+  <form class="form" method="post" action="/insumos">
+    <div class="grid">
+      <label>Nome<input name="nome" placeholder="Ex: Cola Acrílica X" required /></label>
+      <label>Categoria<input name="categoria" placeholder="Ex: Cola / Fita / Limpeza" /></label>
+      <label>Unidade
+        <select name="unidade" required>
+          <option value="un">un (unidade)</option>
+          <option value="ml">ml (metro linear)</option>
+          <option value="m">m (metros)</option>
+        </select>
+      </label>
+      <label>Estoque inicial<input name="estoque_atual" type="number" value="0" /></label>
+      <label>Estoque mínimo<input name="estoque_minimo" type="number" value="0" /></label>
+    </div>
+    <div style="display:flex; gap:10px; margin-top:12px;">
+      <button class="btn" type="submit">Salvar</button>
+      <a class="btn btn-ghost" href="/insumos">Cancelar</a>
+    </div>
+  </form>
+</div>

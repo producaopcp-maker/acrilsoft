@@ -1,0 +1,262 @@
+<% const f = (typeof filtros !== 'undefined' ? filtros : {}); %>
+
+<div class="card">
+  <div class="card-head" style="align-items:flex-start;">
+    <div>
+      <div class="h1">Controle de Pedidos</div>
+      <div class="muted">Kanban unificado (Manual + Mercado Livre + Shopee + Bling)</div>
+    </div>
+
+    <div class="topbar-actions" style="display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end;">
+      <a class="btn btn-ghost" href="/pedidos"><span class="btn-ico"><span class="emoji">📋</span></span>Ver em tabela</a>
+      <a class="btn btn-primary" href="/pedidos/novo"><span class="btn-ico"><span class="emoji">➕</span></span>Novo Pedido</a>
+    </div>
+  </div>
+
+  <form class="search" id="kanbanFilters" method="GET" action="/pedidos/kanban">
+    <input name="q" placeholder="Buscar (cliente, nº, vendedor, bling nº)" value="<%= f.q || '' %>" style="min-width:260px" />
+
+    <select name="canal">
+      <option value="">Canal (todos)</option>
+      <% const canalVal = String(f.canal || '').toUpperCase(); %>
+      <option value="MANUAL" <%= canalVal==='MANUAL'?'selected':'' %>>Manual</option>
+      <option value="MERCADOLIVRE" <%= canalVal==='MERCADOLIVRE'?'selected':'' %>>Mercado Livre</option>
+      <option value="SHOPEE" <%= canalVal==='SHOPEE'?'selected':'' %>>Shopee</option>
+      <option value="BLING" <%= canalVal==='BLING'?'selected':'' %>>Bling</option>
+    </select>
+
+    <label style="display:flex; flex-direction:column; gap:4px;">
+      <span class="muted" style="font-size:12px;">De</span>
+      <input type="date" name="de" value="<%= f.de || '' %>" />
+    </label>
+
+    <label style="display:flex; flex-direction:column; gap:4px;">
+      <span class="muted" style="font-size:12px;">Até</span>
+      <input type="date" name="ate" value="<%= f.ate || '' %>" />
+    </label>
+
+    <button class="btn btn-secondary" type="submit"><span class="btn-ico"><span class="emoji">🔎</span></span>Aplicar</button>
+    <a class="btn btn-ghost" href="/pedidos/kanban"><span class="btn-ico"><span class="emoji">♻️</span></span>Limpar</a>
+  </form>
+</div>
+
+<div class="kanban-toolbar">
+  <div class="kpis" style="margin-bottom:0;">
+    <div class="kpi"><div class="kpi-label">Total (visão atual)</div><div class="kpi-value" id="kpiTotal">—</div></div>
+    <div class="kpi"><div class="kpi-label">Pedidos em Produção</div><div class="kpi-value" id="kpiProducao">—</div></div>
+    <div class="kpi"><div class="kpi-label">Pendências de pagamento</div><div class="kpi-value" id="kpiPend">—</div></div>
+    <div class="kpi"><div class="kpi-label">Ticket médio</div><div class="kpi-value" id="kpiTicket">—</div></div>
+  </div>
+  <div class="muted" id="kanbanHint" style="margin-top:10px;">Arraste cartões para mudar o status (respeite o fluxo). Atualize para ver mudanças de integrações.</div>
+</div>
+
+<div class="kanban" id="kanbanRoot">
+  <div class="muted">Carregando…</div>
+</div>
+
+<script>
+  const fmtBRL = new Intl.NumberFormat('pt-BR', { style:'currency', currency:'BRL' });
+  const fmtInt = new Intl.NumberFormat('pt-BR');
+
+  function parseSqliteDateTime(s){
+    if(!s) return null;
+    // sqlite: 'YYYY-MM-DD HH:MM:SS'
+    const iso = String(s).replace(' ', 'T');
+    const d = new Date(iso);
+    if(!isNaN(d.getTime())) return d;
+    // fallback: add 'Z'
+    const dz = new Date(iso + 'Z');
+    return isNaN(dz.getTime()) ? null : dz;
+  }
+
+  function timeAgo(dt){
+    const d = (dt instanceof Date) ? dt : parseSqliteDateTime(dt);
+    if(!d) return '';
+    const diff = Date.now() - d.getTime();
+    const mins = Math.floor(diff/60000);
+    if(mins < 2) return 'agora';
+    if(mins < 60) return `há ${mins} min`;
+    const hrs = Math.floor(mins/60);
+    if(hrs < 24) return `há ${hrs}h`;
+    const days = Math.floor(hrs/24);
+    return `há ${days}d`;
+  }
+
+  function canalBadge(canal){
+    const c = String(canal||'MANUAL').toUpperCase();
+    const map = {
+      'MERCADOLIVRE': { label:'Mercado Livre', cls:'badge-ml' },
+      'SHOPEE': { label:'Shopee', cls:'badge-shopee' },
+      'BLING': { label:'Bling', cls:'badge-bling' },
+      'MANUAL': { label:'Manual', cls:'badge-manual' },
+    };
+    return map[c] || map.MANUAL;
+  }
+
+  function pagamentoChip(total, pago){
+    const t = Number(total||0) || 0;
+    const p = Number(pago||0) || 0;
+    if(t <= 0) return { label:'—', cls:'chip-info' };
+    if(p + 0.009 >= t) return { label:'PAGO', cls:'chip-ok' };
+    if(p > 0) return { label:'PARCIAL', cls:'chip-warn' };
+    return { label:'PENDENTE', cls:'chip-danger' };
+  }
+
+  async function api(path, opts={}){
+    const res = await fetch(path, {
+      credentials: 'same-origin',
+      headers: { 'Content-Type':'application/json' },
+      ...opts,
+    });
+    const json = await res.json().catch(()=>null);
+    if(!res.ok || !json || json.ok === false) throw new Error((json && json.error) ? json.error : ('HTTP ' + res.status));
+    return json;
+  }
+
+  function buildColumn(col){
+    const el = document.createElement('section');
+    el.className = 'kanban-col';
+    el.dataset.colKey = col.key;
+
+    const head = document.createElement('div');
+    head.className = 'kanban-col-head';
+    head.innerHTML = `
+      <div class="kanban-col-title">${col.label}</div>
+      <div class="kanban-col-metrics">
+        <span class="kanban-pill"><b>${fmtInt.format(col.metrics.count||0)}</b> pedidos</span>
+        <span class="kanban-pill"><b>${fmtBRL.format(col.metrics.total||0)}</b></span>
+        <span class="kanban-pill warn"><b>${fmtInt.format(col.metrics.pendentes||0)}</b> pend.</span>
+      </div>
+    `;
+    el.appendChild(head);
+
+    const list = document.createElement('div');
+    list.className = 'kanban-list';
+    list.dataset.dropKey = col.key;
+    list.addEventListener('dragover', (e)=>{ e.preventDefault(); list.classList.add('drop'); });
+    list.addEventListener('dragleave', ()=> list.classList.remove('drop'));
+    list.addEventListener('drop', async (e)=>{
+      e.preventDefault();
+      list.classList.remove('drop');
+      const raw = e.dataTransfer.getData('text/plain');
+      if(!raw) return;
+      const payload = JSON.parse(raw);
+      const card = document.querySelector(`[data-pedido-id="${payload.id}"]`);
+      if(!card) return;
+
+      // Mapeia coluna -> status do pedido
+      const colKey = col.key;
+      let nextStatus = col.statuses && col.statuses[0] ? col.statuses[0] : null;
+      if(colKey === 'ORCAMENTOS') nextStatus = 'ORCAMENTO';
+      if(!nextStatus) return;
+
+      card.classList.add('saving');
+      try {
+        await api(`/api/pedidos/${payload.id}/status`, { method:'POST', body: JSON.stringify({ status: nextStatus }) });
+        // Move o card visualmente
+        list.prepend(card);
+        card.classList.remove('saving');
+        await loadKanban();
+      } catch(err){
+        card.classList.remove('saving');
+        alert('Falha ao atualizar status: ' + err.message);
+      }
+    });
+    el.appendChild(list);
+    return el;
+  }
+
+  function buildCard(p){
+    const card = document.createElement('article');
+    card.className = 'kanban-card';
+    card.draggable = true;
+    card.dataset.pedidoId = p.id;
+    card.addEventListener('dragstart', (e)=>{
+      e.dataTransfer.setData('text/plain', JSON.stringify({ id: p.id }));
+      e.dataTransfer.effectAllowed = 'move';
+      card.classList.add('dragging');
+    });
+    card.addEventListener('dragend', ()=> card.classList.remove('dragging'));
+
+    const b = canalBadge(p.canal_venda);
+    const pay = pagamentoChip(p.total, p.pago_total);
+    const cliente = (p.cliente && String(p.cliente).trim()) ? String(p.cliente).trim() : 'Consumidor final';
+
+    card.innerHTML = `
+      <div class="kanban-card-top">
+        <span class="kanban-badge ${b.cls}">${b.label}</span>
+        <span class="muted">#${p.id}</span>
+      </div>
+      <div class="kanban-card-title">${escapeHtml(cliente)}</div>
+      <div class="kanban-card-sub">
+        <span class="chip ${pay.cls}">${pay.label}</span>
+        ${p.op_id ? '<span class="chip chip-info">OP</span>' : ''}
+        <span class="muted">${timeAgo(p.criado_em)}</span>
+      </div>
+      <div class="kanban-card-bottom">
+        <div class="kanban-card-total">${fmtBRL.format(Number(p.total||0)||0)}</div>
+        <div class="kanban-card-actions">
+          <a class="btn btn-small btn-ghost" href="/pedidos/${p.id}"><span class="btn-ico"><span class="emoji">👁️</span></span></a>
+          <a class="btn btn-small btn-secondary" href="/ops/nova?pedido_id=${p.id}"><span class="btn-ico"><span class="emoji">🏭</span></span></a>
+        </div>
+      </div>
+    `;
+    return card;
+  }
+
+  function escapeHtml(str){
+    return String(str||'')
+      .replaceAll('&','&amp;')
+      .replaceAll('<','&lt;')
+      .replaceAll('>','&gt;')
+      .replaceAll('"','&quot;')
+      .replaceAll("'",'&#039;');
+  }
+
+  async function loadKanban(){
+    const params = new URLSearchParams(window.location.search);
+    const url = '/api/pedidos/kanban?' + params.toString();
+    const data = await api(url);
+
+    const root = document.getElementById('kanbanRoot');
+    root.innerHTML = '';
+    const colEls = new Map();
+
+    // KPIs
+    const all = data.columns.flatMap(c => c.pedidos);
+    const sumTotal = all.reduce((acc,p)=> acc + (Number(p.total||0)||0), 0);
+    const pend = all.reduce((acc,p)=> acc + ((Number(p.total||0)||0) > 0 && (Number(p.pago_total||0)||0) + 0.009 < (Number(p.total||0)||0) ? 1 : 0), 0);
+    const prod = data.columns.find(c => c.key==='EM_PRODUCAO')?.metrics?.count || 0;
+    const ticket = all.length ? (sumTotal / all.length) : 0;
+
+    document.getElementById('kpiTotal').textContent = fmtBRL.format(sumTotal);
+    document.getElementById('kpiProducao').textContent = fmtInt.format(prod);
+    document.getElementById('kpiPend').textContent = fmtInt.format(pend);
+    document.getElementById('kpiTicket').textContent = fmtBRL.format(ticket);
+
+    for(const col of data.columns){
+      const colEl = buildColumn(col);
+      colEls.set(col.key, colEl);
+      root.appendChild(colEl);
+    }
+
+    for(const col of data.columns){
+      const list = colEls.get(col.key).querySelector('.kanban-list');
+      for(const p of col.pedidos){
+        list.appendChild(buildCard(p));
+      }
+      if(!col.pedidos.length){
+        const empty = document.createElement('div');
+        empty.className = 'kanban-empty';
+        empty.textContent = 'Sem pedidos';
+        list.appendChild(empty);
+      }
+    }
+  }
+
+  loadKanban().catch(err => {
+    console.error(err);
+    const root = document.getElementById('kanbanRoot');
+    root.innerHTML = `<div class="card"><b>Falha ao carregar o Kanban:</b><div class="muted">${escapeHtml(err.message)}</div></div>`;
+  });
+</script>

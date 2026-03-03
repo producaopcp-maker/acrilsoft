@@ -1,0 +1,106 @@
+<%
+  const p = produto || {};
+  const chapas = Array.isArray(chapas) ? chapas : [];
+  const itens = Array.isArray(itens) ? itens : [];
+  function val(x){ return (x===null||x===undefined)?'':String(x); }
+  function mmToM(mm){ return Number(mm||0)/1000; }
+  function areaM2(l,a){ return (Number(l||0)*Number(a||0))/1000000; }
+%>
+
+<div class="card">
+  <div class="card-head">
+    <div>
+      <div class="h1">Ficha técnica — <%= p.nome %></div>
+      <div class="muted">Defina o consumo de chapas (m²) por unidade produzida/vendida.</div>
+    </div>
+    <div class="card-actions">
+      <a class="btn btn-ghost" href="/cadastro-produtos">Voltar</a>
+      <a class="btn btn-ghost" href="/cadastro-produtos/<%= p.id %>">Editar produto</a>
+    </div>
+  </div>
+
+  <div class="row" style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-top:12px;">
+    <div class="card" style="padding:12px;">
+      <div style="font-weight:700; margin-bottom:6px;">Adicionar item (Chapa)</div>
+      <form method="post" action="/cadastro-produtos/<%= p.id %>/bom">
+        <label class="lbl">Chapa (estoque)</label>
+        <select class="inp" name="chapa_id" required>
+          <option value="">Selecione...</option>
+          <% chapas.forEach(c => { %>
+            <option value="<%= c.id %>"><%= c.descricao %> — <%= c.espessura_mm %>mm — <%= c.cor %></option>
+          <% }) %>
+        </select>
+
+        <div class="row" style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; margin-top:10px;">
+          <div>
+            <label class="lbl">Qtd (un)</label>
+            <input class="inp" name="qtd" type="number" step="0.01" value="1">
+          </div>
+          <div>
+            <label class="lbl">Larg (mm)</label>
+            <input class="inp" name="largura_mm" type="number" step="1" value="<%= val(p.largura_mm||'') %>">
+          </div>
+          <div>
+            <label class="lbl">Alt (mm)</label>
+            <input class="inp" name="altura_mm" type="number" step="1" value="<%= val(p.altura_mm||'') %>">
+          </div>
+        </div>
+
+        <div style="margin-top:10px;">
+          <label class="lbl">Obs</label>
+          <input class="inp" name="obs" placeholder="opcional">
+        </div>
+
+        <div style="margin-top:12px;">
+          <button class="btn" type="submit">Adicionar</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card" style="padding:12px;">
+      <div style="font-weight:700; margin-bottom:6px;">Resumo</div>
+      <div class="muted">Consumo total por unidade (estimado):</div>
+      <div style="font-size:28px; font-weight:800; margin-top:6px;">
+        <%= (consumo_total_m2 || 0).toFixed(4).replace('.', ',') %> m²
+      </div>
+      <div class="muted" style="margin-top:6px;">Ao aprovar o pedido (Kanban), o sistema baixa automaticamente as chapas conforme esta ficha técnica.</div>
+    </div>
+  </div>
+
+  <div class="table-wrap" style="margin-top:12px;">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Chapa</th>
+          <th style="width:90px;">Qtd</th>
+          <th style="width:110px;">Larg</th>
+          <th style="width:110px;">Alt</th>
+          <th style="width:140px;">Consumo (m²)</th>
+          <th style="width:90px;"></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (!itens.length) { %>
+          <tr><td colspan="6" class="muted">Nenhum item cadastrado.</td></tr>
+        <% } %>
+        <% itens.forEach(it => { %>
+          <tr>
+            <td>
+              <div style="font-weight:700;"><%= it.chapa_desc %></div>
+              <div class="muted" style="font-size:12px;"><%= it.espessura_mm %>mm • <%= it.cor %></div>
+            </td>
+            <td><%= (it.qtd || 0) %></td>
+            <td><%= (it.largura_mm || 0) %> mm</td>
+            <td><%= (it.altura_mm || 0) %> mm</td>
+            <td><%= (it.consumo_m2 || 0).toFixed(4).replace('.', ',') %></td>
+            <td style="text-align:right;">
+              <form method="post" action="/cadastro-produtos/<%= p.id %>/bom/<%= it.id %>/remover" style="display:inline;">
+                <button class="btn btn-ghost" type="submit" onclick="return confirm('Remover item?')">Remover</button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>

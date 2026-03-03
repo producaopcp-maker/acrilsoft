@@ -1,0 +1,89 @@
+<%
+  // Componente padrão: Header do Pedido (ações + status)
+  // Espera receber: p (pedido), canModule (fn opcional)
+  const pedido = p || {};
+  const st = String(pedido.status || "RASCUNHO").toUpperCase();
+  // Alguns canais (ex.: Bling) retornam "ABERTO".
+  const opts = ["ABERTO","RASCUNHO","ORCAMENTO","APROVADO","EM_PRODUCAO","PRONTO","FATURADO","ENTREGUE","CANCELADO"];
+
+  function chipClass(status){
+    status = String(status||"").toUpperCase();
+    if (status === "FATURADO" || status === "ENTREGUE") return "chip chip-ok";
+    if (status === "CANCELADO") return "chip chip-danger";
+    if (status === "APROVADO" || status === "EM_PRODUCAO" || status === "PRONTO") return "chip chip-info";
+    if (status === "ORCAMENTO") return "chip chip-warn";
+    return "chip chip-warn";
+  }
+
+  function money(v){
+    v = Number(v || 0) || 0;
+    return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+%>
+
+<div class="pedido-header">
+  <div class="pedido-header-top">
+    <div class="pedido-title">
+      <div class="pedido-title-row">
+        <div class="h1">Pedido #<%= pedido.id %></div>
+        <span class="<%= chipClass(st) %>"><%= st %></span>
+      </div>
+      <div class="muted">Pré-OP (comercial). Converta para OP quando estiver pronto.</div>
+      <div class="pedido-meta">
+        <div class="pedido-meta-item">
+          <div class="pedido-meta-label">Cliente</div>
+          <div class="pedido-meta-value"><%= (pedido.cliente_nome || pedido.cliente_nome_avulso || 'CONSUMIDOR FINAL') %></div>
+        </div>
+        <div class="pedido-meta-item">
+          <div class="pedido-meta-label">Total</div>
+          <div class="pedido-meta-value pedido-meta-total"><%= money(pedido.total ?? 0) %></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pedido-header-actions" role="group" aria-label="Ações do pedido">
+      <div class="pedido-header-actions-primary">
+        <% if ((st === 'ABERTO' || st === 'RASCUNHO' || st === 'ORCAMENTO' || st === 'APROVADO') && !pedido.op_id) { %>
+          <form method="post" action="/pedidos/<%= pedido.id %>/gerar-op" style="display:inline; margin:0;">
+            <button class="btn btn-primary" type="submit" onclick="return confirm('Gerar uma OP para este pedido agora?')">Criar OP</button>
+          </form>
+        <% } %>
+
+        <% if (pedido.op_id) { %>
+          <a class="btn btn-primary" href="/ops/<%= pedido.op_id %>">Abrir OP</a>
+        <% } %>
+
+        <% if (typeof canModule === 'function' && canModule('fiscal')) { %>
+          <form method="post" action="/fiscal/emitir/nfe/<%= pedido.id %>" style="display:inline; margin:0;">
+            <button class="btn" type="submit">Emitir NF-e</button>
+          </form>
+        <% } %>
+
+        <% if (pedido.status !== 'CANCELADO') { %>
+          <form method="post" action="/pedidos/<%= pedido.id %>/cancelar" style="display:inline; margin:0;">
+            <button class="btn btn-danger" type="submit" onclick="return confirm('Cancelar este pedido?')">Cancelar</button>
+          </form>
+        <% } %>
+      </div>
+
+      <div class="pedido-header-actions-secondary">
+        <a class="btn btn-ghost" href="/pedidos">Voltar</a>
+        <a class="btn" href="/pedidos/<%= pedido.id %>/editar">Editar</a>
+
+        <form method="post" action="/pedidos/<%= pedido.id %>/status" class="pedido-status-mini" style="margin:0;">
+          <select class="inp" name="status" aria-label="Status do pedido">
+            <% opts.forEach(o => { %>
+              <option value="<%= o %>" <%= (st===o) ? "selected" : "" %>><%= o %></option>
+            <% }) %>
+          </select>
+          <button class="btn btn-ghost" type="submit">Atualizar</button>
+        </form>
+
+        <% if (pedido.bling_id) { %>
+          <button class="btn btn-ghost" type="button" onclick="ressincronizarBlingLocal(<%= pedido.id %>)">Sync Bling</button>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</div>
+

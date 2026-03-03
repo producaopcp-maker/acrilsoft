@@ -1,0 +1,202 @@
+<% const __insumos = (typeof insumosUsados !== 'undefined' && insumosUsados) ? insumosUsados : []; %>
+<% const __servicos = (typeof servicosUsados !== 'undefined' && servicosUsados) ? servicosUsados : []; %>
+<% const __servTotal = (__servicos || []).reduce((acc, r) => acc + (Number(r.preco_unit||0) * Number(r.quantidade||0)), 0); %>
+<% const __brindes = (typeof brindesUsados !== 'undefined' && brindesUsados) ? brindesUsados : []; %>
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Impressão OP <%= op.codigo_op %></title>
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    body{ background:#fff; }
+    .print-shell{ max-width: 920px; margin: 22px auto; padding: 0 14px; }
+    .print-actions{ display:flex; gap:10px; margin-bottom:16px; }
+    @media print{
+      .print-actions{ display:none !important; }
+      .card{ page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <div class="print-shell">
+    <div class="print-actions">
+      <button class="btn btn-primary" onclick="window.print()">Imprimir</button>
+      <a class="btn btn-ghost" href="javascript:window.close()">Fechar</a>
+    </div>
+
+    <div class="card">
+      <div class="h1">Ordem de Produção</div>
+      <div class="muted">OP: <b class="mono"><%= op.codigo_op %></b> • Status: <b><%= op.status.replace('_',' ') %></b></div>
+      <div style="margin-top:10px; display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+        <div><span class="muted">Cliente:</span> <b><%= op.cliente || "-" %></b></div>
+        <div><span class="muted">Produto final:</span> <b><%= op.produto_final || "-" %></b></div>
+        <div><span class="muted">Quantidade:</span> <b><%= op.quantidade_final || "-" %></b></div>
+        <div><span class="muted">Prioridade:</span> <b><%= op.prioridade %></b></div>
+        <div><span class="muted">Data de abertura:</span> <b class="mono"><%= op.data_abertura || "-" %></b></div>
+        <div><span class="muted">Data para entrega:</span> <b class="mono"><%= op.data_entrega || "-" %></b></div>
+        <div><span class="muted">Criado em:</span> <b class="mono"><%= op.criado_em %></b></div>
+      </div>
+      <% if (op.observacao_cliente) { %><div style="margin-top:10px;"><span class="muted">Obs. Cliente:</span> <b><%= op.observacao_cliente %></b></div><% } %>
+      <% if (op.observacao_interna || op.observacao) { %><div style="margin-top:6px;"><span class="muted">Obs. Interna:</span> <b><%= (op.observacao_interna || op.observacao) %></b></div><% } %>
+    </div>
+
+
+<div class="card">
+  <div class="h1">Material / Peças</div>
+  <div style="margin-top:10px; display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+    <div><span class="muted">Espessura:</span> <b><%= op.material_espessura_mm ? (op.material_espessura_mm + 'mm') : '-' %></b></div>
+    <div><span class="muted">Cor:</span> <b><%= op.material_cor || '-' %></b></div>
+  </div>
+
+  <div style="margin-top:10px;">
+    <div class="muted" style="margin-bottom:6px;">Peças</div>
+    <% if (!pecas || pecas.length === 0) { %>
+      <div class="muted">Nenhuma peça informada.</div>
+    <% } else { %>
+      <table class="table">
+        <thead><tr><th>Peça</th><th>Medidas</th><th>Qtd</th></tr></thead>
+        <tbody>
+          <% (pecas || []).forEach(p => { %>
+            <tr>
+              <td><b><%= p.nome || 'Peça' %></b></td>
+              <td><%= p.medidas || '-' %></td>
+              <td><%= (p.quantidade || 1) %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    <% } %>
+  </div>
+</div>
+
+
+    <div class="card">
+      <div class="h1">Itens</div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Produto</th><th>Cód.</th><th>Esp.</th><th>Cor</th><th>Qtd</th><th>Obs</th></tr></thead>
+          <tbody>
+            <% if (!itens || itens.length === 0) { %><tr><td colspan="6" class="td-empty">Nenhum item.</td></tr><% } %>
+            <% (itens || []).forEach(it => { %>
+              <tr>
+                <td><b><%= it.descricao %></b></td>
+                <td class="mono"><%= it.codigo_interno || "-" %></td>
+                <td><%= it.espessura_mm %>mm</td>
+                <td><%= it.cor %></td>
+                <td><b><%= it.quantidade %></b></td>
+                <td><%= it.observacao || "-" %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="h1">Checklist final de produção</div>
+      <div class="muted" style="margin-top:-6px;">(Conferência antes de finalizar / arquivar)</div>
+
+      <div style="margin-top:12px; display:grid; grid-template-columns: 1fr 1fr; gap:8px 16px;">
+        <% (checklistFinal || []).forEach(ch => { %>
+          <div style="display:flex; gap:10px; align-items:flex-start;">
+            <div class="mono" style="min-width:22px; font-size:16px; line-height:1;">
+              <%= ch.concluido ? "☑" : "☐" %>
+            </div>
+            <div>
+              <div><b><%= ch.item %></b></div>
+              <% if (ch.data_conclusao) { %>
+                <div class="muted" style="font-size:12px;">Concluído em: <span class="mono"><%= ch.data_conclusao %></span></div>
+              <% } %>
+            </div>
+          </div>
+        <% }) %>
+        <% if (!checklistFinal || checklistFinal.length === 0) { %>
+          <div class="muted">Checklist não disponível.</div>
+        <% } %>
+      </div>
+    </div>
+
+      <div style="margin-top:14px; padding-top:12px; border-top:1px solid #e5e7eb;">
+        <% if (assinaturaChecklist && assinaturaChecklist.responsavel) { %>
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+            <div><span class="muted">Responsável:</span> <b><%= assinaturaChecklist.responsavel %></b></div>
+            <div><span class="muted">Assinado em:</span> <b class="mono"><%= assinaturaChecklist.data_assinatura || '-' %></b></div>
+          </div>
+        <% } else { %>
+          <div class="muted">Responsável: ____________________________ &nbsp;&nbsp; Data: ____/____/______</div>
+        <% } %>
+      </div>
+
+    </div>
+
+    <div class="card">
+      <div class="h1">Layout / Imagens anexadas</div>
+      <% if (!anexos || anexos.length === 0) { %><div class="muted">Sem anexos.</div><% } %>
+      <div>
+        <% (anexos || []).slice(0, 6).forEach(a => { %>
+          <div style="margin-top:10px;">
+            <div class="muted"><%= a.original_name || a.filename %></div>
+            <img src="/uploads/<%= a.filename %>" style="max-width:100%; border:1px solid #e5e7eb; border-radius:12px; margin-top:6px;" />
+          </div>
+        <% }) %>
+      </div>
+      <div class="muted" style="margin-top:10px;">(A impressão leva no máximo 6 imagens.)</div>
+    </div>
+  </div>
+
+<h3 style="margin-top:16px;">Insumos usados</h3>
+<% if ((__insumos || []).length === 0) { %>
+  <div style="color:#666;">Nenhum insumo registrado nesta OP.</div>
+<% } else { %>
+  <table style="width:100%; border-collapse:collapse;" border="1" cellpadding="6">
+    <tr><th align="left">Insumo</th><th align="left">Quantidade</th></tr>
+    <% (__insumos || []).forEach(function(r){ %>
+      <tr>
+        <td><%= r.nome %> (<%= r.unidade || 'un' %>)</td>
+        <td><%= r.quantidade %></td>
+      </tr>
+    <% }) %>
+  </table>
+<% } %>
+
+
+<h3 style="margin-top:16px;">Brindes</h3>
+<% if ((__brindes || []).length === 0) { %>
+  <div style="color:#666;">Nenhum brinde nesta OP.</div>
+<% } else { %>
+  <table style="width:100%; border-collapse:collapse;" border="1" cellpadding="6">
+    <tr><th align="left">Brinde</th><th align="left">Quantidade</th></tr>
+    <% (__brindes || []).forEach(function(r){ %>
+      <tr>
+        <td><%= r.nome %> (<%= r.unidade || 'UN' %>)</td>
+        <td><%= r.quantidade %></td>
+      </tr>
+    <% }) %>
+  </table>
+<% } %>
+
+<h3 style="margin-top:16px;">Serviços da OP</h3>
+<% if ((__servicos || []).length === 0) { %>
+  <div style="color:#666;">Nenhum serviço registrado nesta OP.</div>
+<% } else { %>
+  <table style="width:100%; border-collapse:collapse;" border="1" cellpadding="6">
+    <tr><th align="left">Serviço</th><th align="left">Qtd</th><th align="left">Preço</th><th align="left">Total</th><th align="left">Obs.</th></tr>
+    <% (__servicos || []).forEach(function(r){ %>
+      <tr>
+        <td><%= r.nome %> (<%= r.unidade || 'un' %>)</td>
+        <td><%= r.quantidade %></td>
+        <td><%= Number(r.preco_unit||0).toFixed(2) %></td>
+        <td><%= (Number(r.preco_unit||0) * Number(r.quantidade||0)).toFixed(2) %></td>
+        <td><%= r.observacao || '' %></td>
+      </tr>
+    <% }) %>
+	    <tr>
+	      <td colspan="3" align="right"><b>Total serviços</b></td>
+	      <td colspan="2"><b><%= __servTotal.toFixed(2) %></b></td>
+	    </tr>
+  </table>
+<% } %>
+</body>
+</html>

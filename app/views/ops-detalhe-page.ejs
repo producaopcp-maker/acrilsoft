@@ -1,0 +1,501 @@
+<%
+  // Helpers (logic here avoids inline-scriptlet edge cases in some EJS setups)
+  const st = String(op.status || '').toUpperCase();
+  const isArquivada = Number(op.arquivada || 0) === 1;
+  const podeArquivar = (st === 'FINALIZADA' || st === 'CANCELADA') && !isArquivada;
+  const podeExcluir = (st === 'CANCELADA') || isArquivada;
+  const checklistTot = Number(checklistTotal || 0);
+  const checklistOk = (checklistTot > 0) && (Number(checklistConcluidos || 0) >= checklistTot);
+  const pctChecklist = checklistTot ? Math.round((Number(checklistConcluidos || 0) / checklistTot) * 100) : 0;
+%>
+
+<div class="kpis">
+  <div class="kpi"><div class="kpi-label">Código</div><div class="kpi-value mono"><%= op.codigo_op %></div></div>
+  <div class="kpi"><div class="kpi-label">Cliente</div><div class="kpi-value"><%= op.cliente || "-" %></div></div>
+  <div class="kpi"><div class="kpi-label">Pedido de venda</div><div class="kpi-value"><%= op.pedido_venda || "-" %></div></div>
+
+  <div class="kpi"><div class="kpi-label">Produto final</div><div class="kpi-value"><%= op.produto_final || "-" %></div></div>
+  <div class="kpi"><div class="kpi-label">Qtd produto</div><div class="kpi-value"><%= op.quantidade_final || "-" %></div></div>
+
+  <div class="kpi kpi-warn"><div class="kpi-label">Status</div><div class="kpi-value"><%= op.status.replace("_"," ") %></div></div>
+  <div class="kpi"><div class="kpi-label">Abertura</div><div class="kpi-value mono"><%= op.data_abertura || "-" %></div></div>
+  <div class="kpi"><div class="kpi-label">Entrega</div><div class="kpi-value mono"><%= op.data_entrega || "-" %></div></div>
+</div>
+
+
+<div class="card">
+  <div class="card-head">
+    <div>
+      <div class="h1">Material / Peças</div>
+      <div class="muted">Espessura, cor e medidas das peças desta OP</div>
+    </div>
+  </div>
+
+  <form class="form" method="post" action="/ops/<%= op.id %>/material">
+    <div class="grid">
+      <label>Espessura do material (mm)
+        <input name="material_espessura_mm" type="number" min="0" step="1" value="<%= op.material_espessura_mm || '' %>" placeholder="Ex: 3" />
+      </label>
+
+      <label>Cor do material
+        <input name="material_cor" value="<%= op.material_cor || '' %>" placeholder="Ex: Cristal / Preto / Branco..." />
+      </label>
+    </div>
+
+    <div style="margin-top:10px;">
+      <div class="h2">Peças</div>
+      <div class="muted" style="margin-bottom:8px;">Ex.: Corpo 10x20, Base 30x30</div>
+
+      
+<div class="pecas-header" style="display:grid; grid-template-columns: 1.2fr 1fr 110px 44px; gap:12px; align-items:center;">
+  <div class="muted">Peça</div>
+  <div class="muted">Medidas</div>
+  <div class="muted">Qtd</div>
+  <div></div>
+</div>
+
+<div id="pecasList">
+  <% if ((pecas || []).length === 0) { %>
+    <div class="peca-row" style="display:grid; grid-template-columns: 1.2fr 1fr 110px 44px; gap:12px; align-items:center; margin-top:10px;">
+      <input name="peca_nome" class="input" placeholder="Ex: Corpo" />
+      <input name="peca_medidas" class="input" placeholder="Ex: 10x20" />
+      <input name="peca_qtd" type="number" min="1" value="1" class="input" />
+      <button type="button" class="btn btn-ghost" style="height:40px; width:44px;" onclick="removePecaRow(this)">×</button>
+    </div>
+  <% } %>
+
+  <% (pecas || []).forEach(function(p){ %>
+    <div class="peca-row" style="display:grid; grid-template-columns: 1.2fr 1fr 110px 44px; gap:12px; align-items:center; margin-top:10px;">
+      <input name="peca_nome" class="input" value="<%= p.nome || '' %>" placeholder="Ex: Corpo" />
+      <input name="peca_medidas" class="input" value="<%= p.medidas || '' %>" placeholder="Ex: 10x20" />
+      <input name="peca_qtd" type="number" min="1" value="<%= (p.quantidade || 1) %>" class="input" />
+      <button type="button" class="btn btn-ghost" style="height:40px; width:44px;" onclick="removePecaRow(this)">×</button>
+    </div>
+  <% }) %>
+</div>
+
+<button type="button" class="btn btn-ghost" style="margin-top:10px;" onclick="addPecaRow()">+ Adicionar peça</button>
+
+<script>
+  function addPecaRow(){
+    const list = document.getElementById('pecasList');
+    const row = document.createElement('div');
+    row.className = 'peca-row';
+    row.setAttribute('style','display:grid; grid-template-columns: 1.2fr 1fr 110px 44px; gap:12px; align-items:center; margin-top:10px;');
+    row.innerHTML = `
+      <input name="peca_nome" class="input" placeholder="Ex: Corpo" />
+      <input name="peca_medidas" class="input" placeholder="Ex: 10x20" />
+      <input name="peca_qtd" type="number" min="1" value="1" class="input" />
+      <button type="button" class="btn btn-ghost" style="height:40px; width:44px;" onclick="removePecaRow(this)">×</button>
+    `;
+    list.appendChild(row);
+  }
+
+  function removePecaRow(btn){
+    const row = btn.closest('.peca-row');
+    if (row) row.remove();
+  }
+</script>
+</div>
+
+    <div class="actions" style="margin-top:12px;">
+      <button class="btn btn-primary" type="submit">Salvar</button>
+    </div>
+  </form>
+</div>
+
+
+<div class="card">
+  <div class="card-head">
+    <div><div class="h1">Ações</div><div class="muted">Status, impressão e anexos</div></div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+
+<% if (podeArquivar) { %>
+  <form method="POST" action="/ops/<%= op.id %>/arquivar" class="inline-form" onsubmit="return confirm('Enviar esta OP para o arquivo? Ela sairá da lista principal.');">
+    <button class="btn btn-ghost" type="submit">🗄️ Arquivar</button>
+  </form>
+<% } %>
+
+<% if (podeExcluir) { %>
+  <form method="POST" action="/ops/<%= op.id %>/excluir" class="inline-form" onsubmit="return confirm('Excluir esta OP? Esta ação não pode ser desfeita.');">
+    <button class="btn btn-danger" type="submit">🗑️ Excluir</button>
+  </form>
+<% } %>
+<a class="btn btn-secondary" href="/ops/<%= op.id %>/imprimir" target="_blank">Imprimir OP</a>
+      <a class="btn btn-secondary" href="/ops/<%= op.id %>/pdf" target="_blank">Gerar PDF</a>
+
+      <form method="post" action="/ops/<%= op.id %>/status"><input type="hidden" name="status" value="ABERTA" /><button class="btn btn-ghost" type="submit">ABERTA</button></form>
+      <form method="post" action="/ops/<%= op.id %>/status"><input type="hidden" name="status" value="EM_PRODUCAO" /><button class="btn btn-secondary" type="submit">EM PRODUÇÃO</button></form>
+      <form method="post" action="/ops/<%= op.id %>/status"><input type="hidden" name="status" value="AGUARDANDO_MATERIAL" /><button class="btn btn-secondary" type="submit">AGUARD. MATERIAL</button></form>
+      <form method="post" action="/ops/<%= op.id %>/status"><input type="hidden" name="status" value="FINALIZADA" /><button class="btn btn-primary" type="submit">FINALIZAR</button></form>
+      <form method="post" action="/ops/<%= op.id %>/status" onsubmit="return confirm('Cancelar OP?');"><input type="hidden" name="status" value="CANCELADA" /><button class="btn btn-ghost" type="submit">CANCELAR</button></form>
+    </div>
+  </div>
+  <% if (op.observacao_cliente) { %><div class="muted"><b>Obs. Cliente:</b> <%= op.observacao_cliente %></div><% } %>
+  <% if (op.observacao_interna || op.observacao) { %><div class="muted"><b>Obs. Interna:</b> <%= (op.observacao_interna || op.observacao) %></div><% } %>
+</div>
+
+<div class="card" id="checklist">
+  <div class="card-head">
+    <div>
+      <div class="h1">📋 Checklist final de produção</div>
+      <div class="muted">Conclua os itens abaixo. Para OPs FINALIZADAS, o checklist precisa estar 100% para arquivar.</div>
+    </div>
+    <div class="checklist-progress">
+      <span class="badge"><%= (checklistConcluidos || 0) %>/<%= (checklistTotal || 0) %> concluídos</span>
+      <div class="progress" aria-label="Progresso do checklist">
+        <div class="progress-bar" style="width:<%= pctChecklist %>%"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="checklist-list">
+    <% (checklist || []).forEach(function(c, idx){ %>
+      <form class="checklist-item" method="post" action="/ops/<%= op.id %>/checklist">
+        <input type="hidden" name="item" value="<%= c.item %>" />
+        <input type="hidden" name="concluido" value="<%= c.concluido ? 0 : 1 %>" />
+        <label class="checklist-label">
+          <input type="checkbox" <%= c.concluido ? 'checked' : '' %> onchange="this.form.submit()" />
+          <span><%= c.item %></span>
+        </label>
+        <% if (c.concluido && c.data_conclusao) { %>
+          <span class="muted mono" style="font-size:12px;">✓ <%= c.data_conclusao %></span>
+        <% } %>
+        <% if (!(c.concluido && c.data_conclusao)) { %>
+          <span class="muted" style="font-size:12px;">&nbsp;</span>
+        <% } %>
+      </form>
+    <% }) %>
+  </div>
+
+  <div class="checklist-sign" style="margin-top:14px; padding-top:12px; border-top:1px solid #e5e7eb; display:flex; gap:10px; flex-wrap:wrap; align-items:end;">
+    <div style="flex:1; min-width:240px;">
+      <div class="muted" style="margin-bottom:6px;">Assinatura do responsável (aparece no PDF / impressão)</div>
+      <form method="post" action="/ops/<%= op.id %>/checklist/assinar" style="display:flex; gap:8px; flex-wrap:wrap; align-items:end;">
+        <label style="flex:1; min-width:220px;">Responsável
+          <input name="responsavel" value="<%= (assinaturaChecklist && assinaturaChecklist.responsavel) ? assinaturaChecklist.responsavel : '' %>" placeholder="Nome de quem liberou" required />
+        </label>
+        <button class="btn btn-primary" type="submit" <%= (checklistTotal && checklistConcluidos < checklistTotal) ? 'disabled title="Conclua 100% do checklist para assinar"' : '' %>>✍️ Assinar</button>
+      </form>
+    </div>
+
+    <div style="min-width:220px;">
+      <% if (assinaturaChecklist && assinaturaChecklist.responsavel) { %>
+        <div class="badge" style="margin-bottom:6px;">Assinado por <b><%= assinaturaChecklist.responsavel %></b></div>
+        <% if (assinaturaChecklist.data_assinatura) { %><div class="muted mono" style="font-size:12px;">Em: <%= assinaturaChecklist.data_assinatura %></div><% } %>
+        <form method="post" action="/ops/<%= op.id %>/checklist/limpar-assinatura" onsubmit="return confirm('Remover assinatura do checklist?');" style="margin-top:8px;">
+          <button class="btn btn-ghost" type="submit">Remover assinatura</button>
+        </form>
+      <% } %>
+      <% if (!(assinaturaChecklist && assinaturaChecklist.responsavel)) { %>
+        <div class="muted" style="font-size:12px;">Ainda não assinado.</div>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><div><div class="h1">Anexar imagem do layout</div><div class="muted">Imagem do que será produzido (PNG/JPG/WEBP até 8MB)</div></div></div>
+
+  <form class="form" method="post" action="/ops/<%= op.id %>/anexos" enctype="multipart/form-data">
+    <div class="grid">
+      <label>Imagem<input type="file" name="imagem" accept="image/*" required /></label>
+      <div class="actions" style="align-items:end;"><button class="btn btn-primary" type="submit">Enviar</button></div>
+    </div>
+  </form>
+
+  <div class="thumbs">
+    <% if (!anexos || anexos.length === 0) { %><div class="muted" style="margin-top:10px;">Nenhuma imagem anexada.</div><% } %>
+    <% (anexos || []).forEach(function(a){ %>
+      <div class="thumb">
+        <a href="/uploads/<%= a.filename %>" target="_blank"><img src="/uploads/<%= a.filename %>" alt="anexo" /></a>
+        <div class="thumb-meta">
+          <div class="muted" title="<%= a.original_name || a.filename %>"><%= (a.original_name || a.filename).slice(0,28) %></div>
+          <form method="post" action="/ops/<%= op.id %>/anexos/<%= a.id %>/remover" onsubmit="return confirm('Remover imagem?');"><button class="btn btn-small" type="submit">Remover</button></form>
+        </div>
+      </div>
+    <% }) %>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><div><div class="h1">Adicionar item</div><div class="muted">Selecione uma chapa do estoque</div></div></div>
+
+  <form class="form" method="post" action="/ops/<%= op.id %>/itens">
+    <div class="grid">
+      <label>Produto (chapa)
+        <select name="produto_id" required>
+          <% (produtos || []).forEach(function(p){ %>
+            <option value="<%= p.id %>"><%= p.descricao %> • <%= p.espessura_mm %>mm • <%= p.cor %> • estoque: <%= p.estoque_atual %> • cód: <%= p.codigo_interno || "-" %></option>
+          <% }) %>
+        </select>
+      </label>
+      <label>Quantidade<input name="quantidade" type="number" min="1" required /></label>
+      <label>Observação<input name="observacao" placeholder="Ex: cortar 4 peças / medida X..." /></label>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-primary" type="submit">Adicionar</button>
+      <a class="btn btn-ghost" href="/ops">Voltar</a>
+    </div>
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-head"><div><div class="h1">Itens da OP</div><div class="muted">Lista de materiais e quantidades</div></div></div>
+
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Produto</th><th>Cód.</th><th>Esp.</th><th>Cor</th><th>Qtd</th><th>Estoque atual</th><th>Obs</th><th></th></tr></thead>
+      <tbody>
+        <% const temItensPedido = (itensPedido && itensPedido.length > 0); %>
+        <% const temItensChapa = (itens && itens.length > 0); %>
+
+        <% if (!temItensPedido && !temItensChapa) { %>
+          <tr><td colspan="8" class="td-empty">Nenhum item na OP.</td></tr>
+        <% } %>
+
+        <% // 1) Itens do pedido (texto livre) - vêm do Bling/ML/Shopee na conversão %>
+        <% (itensPedido || []).forEach(function(ip){ %>
+          <tr class="row-soft">
+            <td><b><%= ip.descricao %></b><div class="muted" style="margin-top:2px;">Item do pedido</div></td>
+            <td class="mono">-</td>
+            <td>-</td>
+            <td>-</td>
+            <td><b><%= ip.quantidade %></b> <span class="muted"><%= ip.unidade || '' %></span></td>
+            <td>-</td>
+            <td><%= ip.observacao || "-" %></td>
+            <td class="td-actions"></td>
+          </tr>
+        <% }) %>
+
+        <% // 2) Itens de material (chapas) - baixam estoque quando finaliza %>
+        <% (itens || []).forEach(function(it){ %>
+          <tr class="<%= (it.estoque_atual - it.quantidade) < 0 ? 'row-alert' : '' %>">
+            <td><b><%= it.descricao %></b></td>
+            <td class="mono"><%= it.codigo_interno || "-" %></td>
+            <td><%= it.espessura_mm %>mm</td>
+            <td><%= it.cor %></td>
+            <td><b><%= it.quantidade %></b></td>
+            <td><%= it.estoque_atual %></td>
+            <td><%= it.observacao || "-" %></td>
+            <td class="td-actions">
+              <form method="post" action="/ops/<%= op.id %>/itens/<%= it.id %>/remover" onsubmit="return confirm('Remover item?');"><button class="btn btn-small" type="submit">Remover</button></form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+
+
+<div class="card" style="margin-top:12px;">
+  <div class="card-head">
+    <div>
+      <div class="h2">Brindes</div>
+      <div class="muted">A baixa no estoque ocorre quando a OP é marcada como <b>FINALIZADA</b>.</div>
+    </div>
+  </div>
+
+  <% const baixados = Number(op.brindes_baixados || 0) === 1; %>
+  <% if (baixados) { %>
+    <div class="alert alert-warn" style="margin-top:10px;">
+      Brindes já baixados no estoque. A lista está bloqueada para edição.
+    </div>
+  <% } %>
+
+  <form method="post" action="/ops/<%= op.id %>/brindes" style="margin-top:10px;">
+    <div id="brindesList">
+      <% const rows = (brindesUsados && brindesUsados.length) ? brindesUsados : [{ brinde_id: '', quantidade: 1 }]; %>
+      <% rows.forEach(function(r){ %>
+        <div class="brinde-row" style="display:grid; grid-template-columns: 1.2fr 110px 44px; gap:12px; align-items:center; margin-top:10px;">
+          <select name="brinde_id" class="input" <%= baixados ? 'disabled' : '' %>>
+            <option value="">-- selecione --</option>
+            <% (brindesCatalogo || []).forEach(b => { %>
+              <option value="<%= b.id %>" <%= String(b.id) === String(r.brinde_id || r.brinde_id) ? 'selected' : '' %>><%= b.nome %> (<%= b.unidade || 'UN' %>)</option>
+            <% }) %>
+          </select>
+          <input name="brinde_qtd" type="number" min="1" value="<%= r.quantidade || 1 %>" class="input" <%= baixados ? 'disabled' : '' %> />
+          <button type="button" class="btn btn-ghost" style="height:40px; width:44px;" onclick="removeBrindeRow(this)" <%= baixados ? 'disabled' : '' %>>×</button>
+        </div>
+      <% }) %>
+    </div>
+
+    <div id="brindeRowTemplate" style="display:none;">
+      <div class="brinde-row" style="display:grid; grid-template-columns: 1.2fr 110px 44px; gap:12px; align-items:center; margin-top:10px;">
+        <select name="brinde_id" class="input">
+          <option value="">-- selecione --</option>
+          <% (brindesCatalogo || []).forEach(b => { %>
+            <option value="<%= b.id %>"><%= b.nome %> (<%= b.unidade || 'UN' %>)</option>
+          <% }) %>
+        </select>
+        <input name="brinde_qtd" type="number" min="1" value="1" class="input" />
+        <button type="button" class="btn btn-ghost" style="height:40px; width:44px;" onclick="removeBrindeRow(this)">×</button>
+      </div>
+    </div>
+
+    <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
+      <% if (!baixados) { %>
+        <button type="button" class="btn btn-ghost" onclick="addBrindeRow()">+ Adicionar brinde</button>
+        <button class="btn" type="submit">Salvar brindes</button>
+      <% } %>
+    </div>
+  </form>
+</div>
+
+<script>
+  function addBrindeRow(){
+    const tpl = document.getElementById('brindeRowTemplate');
+    const list = document.getElementById('brindesList');
+    if (!tpl || !list) return;
+    const node = tpl.firstElementChild.cloneNode(true);
+    node.querySelector('select').value = '';
+    node.querySelector('input[name="brinde_qtd"]').value = 1;
+    list.appendChild(node);
+  }
+  function removeBrindeRow(btn){
+    const row = btn.closest('.brinde-row');
+    if (!row) return;
+    const rows = document.querySelectorAll('#brindesList .brinde-row');
+    if (rows.length <= 1) {
+      row.querySelector('select').value = '';
+      row.querySelector('input[name="brinde_qtd"]').value = 1;
+      return;
+    }
+    row.remove();
+  }
+</script>
+
+<div class="card" style="margin-top:12px;">
+  <div class="h2">Insumos usados</div>
+  <% if ((insumosUsados || []).length === 0) { %>
+    <div class="muted">Nenhum insumo registrado nesta OP.</div>
+  <% } else { %>
+    <table class="table">
+      <thead><tr><th>Insumo</th><th>Quantidade</th></tr></thead>
+      <tbody>
+      <% (insumosUsados || []).forEach(function(r){ %>
+        <tr>
+          <td><%= r.nome %> <span class="muted">(<%= r.unidade || 'un' %>)</span></td>
+          <td><%= r.quantidade %></td>
+        </tr>
+      <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</div>
+
+</div>
+
+<div class="card" style="margin-top:12px;">
+  <div class="h2">Serviços da OP</div>
+  <% const __servCatalogo = (typeof servicosCatalogo !== 'undefined' && servicosCatalogo) ? servicosCatalogo : []; %>
+  <% const __totalServ = (typeof totalServicos !== 'undefined' && totalServicos) ? Number(totalServicos||0) : 0; %>
+  <div class="muted" style="margin-top:4px;">Total de serviços: <b>R$ <%= __totalServ.toFixed(2) %></b></div>
+  <% if ((servicosUsados || []).length === 0) { %>
+    <div class="muted">Nenhum serviço registrado nesta OP.</div>
+  <% } else { %>
+    <table class="table">
+      <thead><tr><th>Serviço</th><th>Qtd</th><th>Preço</th><th>Total</th><th>Obs.</th></tr></thead>
+      <tbody>
+      <% (servicosUsados || []).forEach(function(r){ %>
+        <tr>
+          <td><%= r.nome %> <span class="muted">(<%= r.unidade || 'un' %>)</span></td>
+          <td><%= r.quantidade %></td>
+          <td><%= Number(r.preco_unit||0).toFixed(2) %></td>
+          <td><b><%= (Number(r.preco_unit||0) * Number(r.quantidade||0)).toFixed(2) %></b></td>
+          <td><%= r.observacao || '' %></td>
+        </tr>
+      <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+
+  <% if (String(op.status || '').toUpperCase() !== 'ENTREGUE') { %>
+    <div style="margin-top:12px;">
+      <div class="muted" style="margin-bottom:6px;">Adicionar/editar serviços (a baixa ocorre quando a OP é marcada como <b>FINALIZADA</b>).</div>
+      <form method="POST" action="/ops/<%= op.id %>/servicos">
+        <div id="servicosList" class="grid" style="grid-template-columns: 1fr 110px 120px 1fr 80px; gap: 10px;">
+          <% const rows = (servicosUsados && servicosUsados.length) ? servicosUsados : [{servico_id:'', quantidade:1, preco_unit:0, observacao:''}]; %>
+          <% rows.forEach(function(r){ %>
+            <div class="serv-row" style="display:contents;">
+              <div>
+                <select name="servico_id" class="input" onchange="fillServicoPrice(this)">
+                  <option value="">-- selecione --</option>
+                  <% (__servCatalogo || []).forEach(function(s){ %>
+                    <option value="<%= s.id %>" data-preco="<%= Number(s.preco_unit||0) %>" <%= (String(r.servico_id||'') === String(s.id)) ? 'selected' : '' %>><%= s.nome %> (<%= s.unidade || 'un' %>)</option>
+                  <% }) %>
+                </select>
+              </div>
+              <div><input class="input" type="number" step="0.01" min="0" name="servico_qtd" value="<%= r.quantidade || 1 %>"></div>
+              <div><input class="input" type="number" step="0.01" min="0" name="servico_preco" value="<%= Number(r.preco_unit||0) %>"></div>
+              <div><input class="input" type="text" name="servico_obs" value="<%= r.observacao || '' %>" placeholder="Obs."></div>
+              <div><button type="button" class="btn" onclick="removeServicoRow(this)">×</button></div>
+            </div>
+          <% }) %>
+        </div>
+
+        <div style="display:flex; gap:10px; margin-top:10px;">
+          <button type="button" class="btn" onclick="addServicoRow()">+ Adicionar serviço</button>
+          <button class="btn btn-primary" type="submit">Salvar serviços</button>
+        </div>
+      </form>
+    </div>
+
+    <template id="servRowTemplate">
+      <div class="serv-row" style="display:contents;">
+        <div>
+          <select name="servico_id" class="input" onchange="fillServicoPrice(this)">
+            <option value="">-- selecione --</option>
+            <% (__servCatalogo || []).forEach(function(s){ %>
+              <option value="<%= s.id %>" data-preco="<%= Number(s.preco_unit||0) %>"><%= s.nome %> (<%= s.unidade || 'un' %>)</option>
+            <% }) %>
+          </select>
+        </div>
+        <div><input class="input" type="number" step="0.01" min="0" name="servico_qtd" value="1"></div>
+        <div><input class="input" type="number" step="0.01" min="0" name="servico_preco" value="0"></div>
+        <div><input class="input" type="text" name="servico_obs" value="" placeholder="Obs."></div>
+        <div><button type="button" class="btn" onclick="removeServicoRow(this)">×</button></div>
+      </div>
+    </template>
+
+    <script>
+      function addServicoRow(){
+        const tpl = document.getElementById('servRowTemplate');
+        const list = document.getElementById('servicosList');
+        if (!tpl || !list) return;
+        const node = tpl.content.firstElementChild.cloneNode(true);
+        list.appendChild(node);
+      }
+      function removeServicoRow(btn){
+        const row = btn.closest('.serv-row');
+        if (!row) return;
+        const rows = document.querySelectorAll('#servicosList .serv-row');
+        if (rows.length <= 1) {
+          // limpa
+          const sel = row.querySelector('select');
+          if (sel) sel.value = '';
+          const qtd = row.querySelector('input[name="servico_qtd"]');
+          if (qtd) qtd.value = 1;
+          const preco = row.querySelector('input[name="servico_preco"]');
+          if (preco) preco.value = 0;
+          const obs = row.querySelector('input[name="servico_obs"]');
+          if (obs) obs.value = '';
+          return;
+        }
+        row.remove();
+      }
+      function fillServicoPrice(selectEl){
+        try {
+          const opt = selectEl.options[selectEl.selectedIndex];
+          const preco = opt ? opt.getAttribute('data-preco') : null;
+          const row = selectEl.closest('.serv-row');
+          const inputPreco = row ? row.querySelector('input[name="servico_preco"]') : null;
+          if (inputPreco && preco !== null && preco !== undefined && String(preco).length) {
+            inputPreco.value = Number(preco);
+          }
+        } catch (e) {}
+      }
+    </script>
+  <% } %>
+</div>

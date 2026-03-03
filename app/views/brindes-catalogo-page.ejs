@@ -1,0 +1,47 @@
+<div class="card">
+  <div class="card-head">
+    <div>
+      <div class="h1">Catálogo de Brindes</div>
+      <div class="muted">SKUs por fornecedor (base para orçamentos)</div>
+    </div>
+
+    <form class="search" method="get" action="/brindes/catalogo">
+      <input name="q" value="<%= q || '' %>" placeholder="Buscar (nome ou código)..." class="input"/>
+      <button class="btn" type="submit">Buscar</button>
+      <a class="btn btn-ghost" href="/brindes/catalogo/novo">Novo SKU</a>
+    </form>
+  </div>
+
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Fornecedor</th>
+          <th>Código</th>
+          <th>Produto</th>
+          <th>Categoria</th>
+          <th>Unid.</th>
+          <th class="right">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (!itens || itens.length === 0) { %>
+          <tr><td colspan="6" class="muted">Nenhum SKU no catálogo.</td></tr>
+        <% } %>
+
+        <% (itens || []).forEach((row) => { %>
+          <tr>
+            <td><%= row.fornecedor_nome || '-' %></td>
+            <td><%= row.codigo_fornecedor %></td>
+            <td><%= row.nome %></td>
+            <td><%= row.categoria || '-' %></td>
+            <td><%= row.unidade || 'UN' %></td>
+            <td class="right">
+              <a class="btn btn-ghost" href="/brindes/catalogo/<%= row.id %>">Ver</a>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>

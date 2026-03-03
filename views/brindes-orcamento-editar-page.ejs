@@ -1,0 +1,427 @@
+<%
+  const it = Array.isArray(itens) ? itens : [];
+  const o = orcamento || {};
+  const financeiroSafe = financeiro || {};
+  const money = (v) => (typeof formatCurrency === 'function') ? formatCurrency(v || 0) : ('R$ ' + Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2}));
+
+  const clienteNome = (o && (o.cliente_nome)) || '—';
+  const whatsapp = o.cliente_whatsapp || '';
+  const statusTxt = String(o.status||'RASCUNHO').toUpperCase();
+
+  const vendaSubtotal = Number(financeiroSafe.vendaSubtotal ?? o.subtotal ?? 0);
+  const vendaTotal = Number(financeiroSafe.vendaTotal ?? o.total ?? 0);
+  const desconto = Number(o.desconto || 0);
+  const frete = Number(o.frete_valor || 0);
+  const lucroEstimado = Number(financeiroSafe.lucroEstimado ?? 0);
+  const margem = vendaTotal > 0 ? (lucroEstimado / vendaTotal) * 100 : 0;
+%>
+
+<style>
+  /* Copiado do orçamento de Produtos (layout SaaS) */
+  .proposal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+  .proposal-brand{display:flex;align-items:center;gap:10px;}
+  .proposal-brand .logo{width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg, rgba(99,102,241,.18), rgba(34,211,238,.18));display:flex;align-items:center;justify-content:center;font-weight:900;}
+  .proposal-brand .name{font-weight:900;font-size:18px;line-height:1.1;}
+  .proposal-brand .sub{color:var(--muted);font-size:12px;}
+  .proposal-title{font-size:22px;font-weight:900;letter-spacing:-.02em;}
+  .proposal-kpis{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;}
+  .proposal-kpis .k{min-width:160px;border:1px solid var(--border);background:var(--card);border-radius:14px;padding:10px 12px;}
+  .proposal-kpis .k .l{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.12em;}
+  .proposal-kpis .k .v{font-weight:900;font-size:16px;}
+  .proposal-kpis .k.primary{box-shadow:0 10px 24px rgba(0,0,0,.06);}
+
+  .section-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;}
+  .section-title .t{font-weight:900;font-size:15px;}
+  .section-title .s{color:var(--muted);font-size:12px;}
+  .hint{color:var(--muted);font-size:12px;margin-top:6px;}
+
+  .sticky-panel { position: sticky; top: 14px; align-self: start; }
+  .kpi { display:flex; justify-content:space-between; gap:10px; padding:8px 10px; border-radius:10px; background: rgba(0,0,0,0.03); border:1px solid var(--border); }
+  .kpi b { font-size: 14px; }
+
+  .proposal-table thead th{font-size:12px;letter-spacing:.12em;text-transform:uppercase;}
+</style>
+
+<div class="page orc-brindes">
+  <div class="card" style="margin-top:10px;">
+    <div class="card-body">
+      <div class="proposal-head">
+        <div>
+          <div class="proposal-brand">
+            <div class="logo">A</div>
+            <div>
+              <div class="name">Acrilsoft</div>
+              <div class="sub">Proposta Comercial • Orçamento de Brindes</div>
+            </div>
+          </div>
+          <div style="margin-top:10px;" class="proposal-title">Orçamento #<%= o.id %></div>
+          <div class="hint">Cliente + itens do estoque + personalizações + condições + layout.</div>
+
+          <div class="proposal-kpis">
+            <div class="k"><div class="l">Status</div><div class="v"><%= statusTxt %></div></div>
+            <div class="k"><div class="l">Cliente</div><div class="v"><%= clienteNome %></div></div>
+            <div class="k"><div class="l">Itens</div><div class="v"><%= it.length %></div></div>
+            <div class="k primary"><div class="l">Total</div><div class="v"><%= money(vendaTotal) %></div></div>
+          </div>
+        </div>
+
+        <div class="sticky-actions" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:flex-end;">
+          <% if (o.pedido_id) { %>
+            <a class="btn btn-primary" href="/pedidos/<%= o.pedido_id %>">Abrir Pedido</a>
+          <% } %>
+          <a class="btn btn-secondary" href="/brindes/orcamentos">Voltar</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Texto WhatsApp (para copiar) -->
+  <textarea id="waText" style="position:absolute; left:-9999px; top:-9999px"><%= (whatsappMsg || '').replace(/\r/g,'') %></textarea>
+
+  <div class="grid" style="grid-template-columns: 1.65fr 1fr; gap: 12px; margin-top:12px; align-items:start;">
+    <div>
+      <!-- Dados do cliente -->
+      <div class="card client-section">
+        <div class="card-body">
+          <div class="section-title">
+            <div>
+              <div class="t">Dados do cliente</div>
+              <div class="s">Informações exibidas na proposta/PDF.</div>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-edit-cliente">Editar</button>
+          </div>
+
+          <div id="cliente-edit-box" hidden>
+            <form class="proposal-form" method="POST" action="/brindes/orcamentos/<%= o.id %>/update" style="padding-top:10px;">
+              <div class="grid grid-2">
+                <div>
+                  <label>Status</label>
+                  <select class="input" name="status">
+                    <option value="RASCUNHO" <%= (o.status==='RASCUNHO'?'selected':'') %>>Rascunho</option>
+                    <option value="ENVIADO" <%= (o.status==='ENVIADO'?'selected':'') %>>Enviado</option>
+                    <option value="APROVADO" <%= (o.status==='APROVADO'?'selected':'') %>>Aprovado</option>
+                    <option value="REPROVADO" <%= (o.status==='REPROVADO'?'selected':'') %>>Reprovado</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label>Cliente ID (opcional)</label>
+                  <input class="input" name="cliente_id" value="<%= o.cliente_id || '' %>" placeholder="Ex: 12">
+                  <div class="hint">Se quiser manter vinculado ao cadastro, deixe preenchido.</div>
+                </div>
+
+                <div>
+                  <label>Nome do cliente (avulso)</label>
+                  <input class="input" name="cliente_nome_avulso" value="<%= o.cliente_nome || '' %>" required>
+                </div>
+
+                <div>
+                  <label>WhatsApp</label>
+                  <input class="input" name="cliente_whatsapp" value="<%= o.cliente_whatsapp || '' %>">
+                </div>
+
+                <div>
+                  <label>E-mail</label>
+                  <input class="input" name="cliente_email" value="<%= o.cliente_email || '' %>">
+                </div>
+
+                <div>
+                  <label>CPF/CNPJ</label>
+                  <input class="input" name="cliente_documento" value="<%= o.cliente_documento || '' %>">
+                </div>
+
+                <div>
+                  <label>Endereço</label>
+                  <input class="input" name="cliente_endereco" value="<%= o.cliente_endereco || '' %>" placeholder="Rua, número, bairro">
+                </div>
+
+                <div class="grid" style="grid-template-columns: 1fr 110px; gap:10px;">
+                  <div>
+                    <label>Cidade</label>
+                    <input class="input" name="cliente_cidade" value="<%= o.cliente_cidade || '' %>">
+                  </div>
+                  <div>
+                    <label>UF</label>
+                    <input class="input" name="cliente_uf" value="<%= o.cliente_uf || '' %>">
+                  </div>
+                </div>
+
+                <div>
+                  <label>Vendedor</label>
+                  <input class="input" name="vendedor_nome" value="<%= o.vendedor_nome || '' %>" placeholder="Nome do vendedor">
+                </div>
+
+                <div>
+                  <label>Canal</label>
+                  <input class="input" name="canal_venda" value="<%= o.canal_venda || '' %>" placeholder="Loja / WhatsApp / ML / Shopee...">
+                </div>
+
+                <div>
+                  <label>Validade (dias)</label>
+                  <input class="input" type="number" min="1" step="1" name="validade_em_dias" value="<%= o.validade_em_dias || 7 %>">
+                </div>
+                <div>
+                  <label>Prazo base (dias úteis)</label>
+                  <input class="input" type="number" min="0" step="1" name="prazo_base_dias" value="<%= o.prazo_base_dias || 10 %>">
+                </div>
+                <div style="grid-column:1/-1;">
+                  <label>Prazo (texto)</label>
+                  <input class="input" name="prazo_entrega_texto" value="<%= o.prazo_entrega_texto || '' %>" placeholder="Ex.: 10 a 12 dias úteis após aprovação">
+                </div>
+                <div>
+                  <label>Pagamento</label>
+                  <input class="input" name="pagamento_texto" value="<%= o.pagamento_texto || '' %>">
+                </div>
+                <div>
+                  <label>Frete (texto)</label>
+                  <input class="input" name="frete_texto" value="<%= o.frete_texto || '' %>">
+                </div>
+                <div>
+                  <label>Frete (R$)</label>
+                  <input class="input" type="number" step="0.01" min="0" name="frete_valor" value="<%= o.frete_valor || 0 %>">
+                </div>
+                <div>
+                  <label>Desconto (R$)</label>
+                  <input class="input" type="number" step="0.01" min="0" name="desconto" value="<%= o.desconto || 0 %>">
+                </div>
+                <div>
+                  <label>Impostos</label>
+                  <input class="input" name="impostos_texto" value="<%= o.impostos_texto || '' %>">
+                </div>
+                <div style="grid-column:1/-1;">
+                  <label>Observações (visível no cliente)</label>
+                  <textarea class="input" name="observacoes" rows="3"><%= o.observacoes || '' %></textarea>
+                </div>
+                <div style="grid-column:1/-1;">
+                  <label>Condições comerciais</label>
+                  <textarea class="input" name="condicoes_comerciais" rows="3"><%= o.condicoes_comerciais || '' %></textarea>
+                </div>
+              </div>
+              <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:10px;">
+                <button class="btn btn-primary" type="submit">Salvar</button>
+              </div>
+            </form>
+          </div>
+
+          <div id="cliente-view-box">
+            <div class="grid grid-2">
+              <div><label>Cliente</label><div class="input" style="display:flex;align-items:center;"><%= clienteNome %></div></div>
+              <div><label>WhatsApp</label><div class="input" style="display:flex;align-items:center;"><%= whatsapp || '—' %></div></div>
+              <div><label>CPF/CNPJ</label><div class="input" style="display:flex;align-items:center;"><%= o.cliente_documento || '—' %></div></div>
+              <div><label>Validade</label><div class="input" style="display:flex;align-items:center;"><%= (o.validade_em_dias ? (o.validade_em_dias + ' dia(s)') : '—') %></div></div>
+              <div><label>Canal</label><div class="input" style="display:flex;align-items:center;"><%= o.canal_venda || '—' %></div></div>
+              <div><label>Prazo</label><div class="input" style="display:flex;align-items:center;"><%= (o.prazo_entrega_texto || '') || (prazoInfo && prazoInfo.prazoTextoCalc) || '—' %></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Itens -->
+      <div class="card" style="margin-top:12px;">
+        <div class="card-body">
+          <div class="section-title">
+            <div>
+              <div class="t">Itens da proposta</div>
+              <div class="s">Itens vinculados ao estoque + personalizações.</div>
+            </div>
+            <a class="btn btn-primary btn-sm" href="#add-item">+ Adicionar item</a>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table proposal-table">
+              <thead>
+                <tr>
+                  <th style="width:80px;">#</th>
+                  <th>Descrição</th>
+                  <th style="width:90px;">Qtd</th>
+                  <th style="width:90px;">UN</th>
+                  <th style="width:130px;" class="text-end">V. Unit</th>
+                  <th style="width:110px;" class="text-end">Desc</th>
+                  <th style="width:140px;" class="text-end">Total</th>
+                  <th style="width:140px;" class="text-end">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% if (!it.length) { %>
+                  <tr><td colspan="8" class="muted">Adicione itens para compor a proposta.</td></tr>
+                <% } %>
+                <% it.forEach((x) => { %>
+                  <tr>
+                    <td>#<%= x.id %></td>
+                    <td><%= x.nome || x.descricao || x.item_nome || '—' %></td>
+                    <td><%= x.qtd || x.quantidade || 1 %></td>
+                    <td><%= x.un || x.unidade || 'UN' %></td>
+                    <td class="text-end"><%= money(x.valor_unitario ?? x.v_unit ?? x.preco_unitario ?? 0) %></td>
+                    <td class="text-end"><%= money(x.desconto_valor ?? x.desconto ?? 0) %></td>
+                    <td class="text-end"><%= money(x.total ?? x.total_item ?? 0) %></td>
+                    <td class="text-end">
+                      <form method="POST" action="/brindes/orcamentos/<%= o.id %>/itens/<%= x.id %>/remover" style="display:inline;" onsubmit="return confirm('Remover item?')">
+                        <button class="btn btn-outline btn-sm" type="submit">Remover</button>
+                      </form>
+                    </td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Adicionar item (mesmo padrão do módulo de Produtos) -->
+          <div id="add-item" style="margin-top:14px;">
+            <div class="section-title">
+              <div>
+                <div class="t">Adicionar item</div>
+                <div class="s">Selecione um brinde do estoque.</div>
+              </div>
+            </div>
+
+            <form class="proposal-form" method="POST" action="/brindes/orcamentos/<%= o.id %>/itens">
+              <div class="grid grid-2">
+                <div style="grid-column:1/-1;">
+                  <label>Produto do estoque (Brindes)</label>
+                  <select class="input" name="brinde_id" required>
+                    <option value="">— Selecionar —</option>
+                    <% (estoqueBrindes || []).forEach((b) => { %>
+                      <option value="<%= b.id %>"><%= b.nome %></option>
+                    <% }) %>
+                  </select>
+                </div>
+                <div>
+                  <label>Quantidade</label>
+                  <input class="input" type="number" min="1" step="1" name="quantidade" value="1" required>
+                </div>
+                <div>
+                  <label>Desconto (valor)</label>
+                  <input class="input" type="number" step="0.01" min="0" name="desconto_valor" value="0">
+                </div>
+              </div>
+              <div style="display:flex; justify-content:flex-end; margin-top:10px;">
+                <button class="btn btn-primary" type="submit">Adicionar</button>
+              </div>
+            </form>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Layout / Arte -->
+      <div class="card" style="margin-top:12px;">
+        <div class="card-body">
+          <div class="section-title">
+            <div>
+              <div class="t">Layout / Arte (anexo)</div>
+              <div class="s">PDF ou imagem do layout da proposta.</div>
+            </div>
+          </div>
+
+          <form method="POST" action="/brindes/orcamentos/<%= o.id %>/layout" enctype="multipart/form-data" class="proposal-form">
+            <div class="grid grid-2">
+              <div style="grid-column:1/-1;">
+                <label>Anexar layout (PDF ou imagem)</label>
+                <input class="input" type="file" name="layout_file" accept=".pdf,image/*">
+              </div>
+              <div style="grid-column:1/-1;">
+                <label>Observação do layout</label>
+                <input class="input" name="layout_obs" value="<%= o.layout_obs || '' %>" placeholder="Ex.: Arte aprovada / ajustes pendentes">
+              </div>
+            </div>
+            <div style="display:flex; justify-content:flex-end; margin-top:10px;">
+              <button class="btn btn-primary" type="submit">Salvar Layout</button>
+            </div>
+          </form>
+
+          <% if (o.layout_filename || o.layout_path) { %>
+            <div class="hint" style="margin-top:10px;">Layout anexado: <b><%= o.layout_filename || 'arquivo' %></b></div>
+          <% } else { %>
+            <div class="hint" style="margin-top:10px;">Nenhum anexo enviado ainda.</div>
+          <% } %>
+        </div>
+      </div>
+
+    </div>
+
+    <div>
+      <div class="card sticky-panel">
+        <div class="card-body">
+          <div class="section-title">
+            <div>
+              <div class="t">Resumo financeiro</div>
+              <div class="s">Totais e margem estimada.</div>
+            </div>
+          </div>
+
+          <div class="kpi"><div class="muted">Subtotal</div><b><%= money(vendaSubtotal) %></b></div>
+          <div class="kpi"><div class="muted">Desconto</div><b><%= money(desconto) %></b></div>
+          <div class="kpi"><div class="muted">Frete</div><b><%= money(frete) %></b></div>
+          <div class="kpi"><div class="muted">Total</div><b><%= money(vendaTotal) %></b></div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px;">
+            <div class="kpi"><div class="muted">Lucro estimado</div><b><%= money(lucroEstimado) %></b></div>
+            <div class="kpi"><div class="muted">Margem estimada</div><b><%= Number(margem||0).toFixed(1) %>%</b></div>
+          </div>
+
+          <div class="hint" style="margin-top:10px;">* Margem baseada nos custos informados nos itens e personalizações.</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px;">
+        <div class="card-body">
+          <div class="section-title">
+            <div>
+              <div class="t">Ações rápidas</div>
+              <div class="s">Atalhos para operação.</div>
+            </div>
+          </div>
+
+          <% if (!o.pedido_id) { %>
+            <form method="POST" action="/brindes/orcamentos/<%= o.id %>/converter-pedido">
+              <button class="btn btn-primary" style="width:100%;">Converter em Pedido</button>
+            </form>
+          <% } else { %>
+            <a class="btn btn-primary" style="width:100%;" href="/pedidos/<%= o.pedido_id %>">Abrir Pedido</a>
+          <% } %>
+
+          <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
+            <a class="btn btn-outline" href="/brindes/orcamentos/<%= o.id %>/imprimir" target="_blank">Imprimir</a>
+            <button class="btn btn-secondary" type="button" id="btnCopyWa">Copiar WhatsApp</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const btn = document.getElementById('btn-edit-cliente');
+  const box = document.getElementById('cliente-edit-box');
+  const view = document.getElementById('cliente-view-box');
+  if (btn && box && view){
+    btn.addEventListener('click', () => {
+      const willShow = box.hasAttribute('hidden');
+      if (willShow){
+        box.removeAttribute('hidden');
+        view.setAttribute('hidden','hidden');
+        btn.textContent = 'Fechar';
+      } else {
+        box.setAttribute('hidden','hidden');
+        view.removeAttribute('hidden');
+        btn.textContent = 'Editar';
+      }
+    });
+  }
+
+  const copyBtn = document.getElementById('btnCopyWa');
+  const wa = document.getElementById('waText');
+  if (copyBtn && wa){
+    copyBtn.addEventListener('click', async () => {
+      try{
+        wa.select();
+        document.execCommand('copy');
+        copyBtn.textContent = 'Copiado!';
+        setTimeout(()=> copyBtn.textContent='Copiar WhatsApp', 1200);
+      }catch(e){}
+    });
+  }
+})();
+</script>

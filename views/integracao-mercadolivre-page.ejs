@@ -1,0 +1,170 @@
+<div class="page-head">
+  <div>
+    <h1>Integração Mercado Livre</h1>
+    <div class="muted">Conecte uma conta Mercado Livre (1 por instalação), sincronize pedidos e receba atualizações via webhook.</div>
+  </div>
+</div>
+
+<% if (typeof ok !== 'undefined' && ok) { %>
+  <div class="alert success">✅ <%= ok %></div>
+<% } %>
+<% if (typeof err !== 'undefined' && err) { %>
+  <div class="alert error">⚠️ <%= err %></div>
+<% } %>
+
+<div class="card">
+  <div class="card-title">Credenciais do App (Mercado Livre)</div>
+  <div class="muted" style="margin-bottom:10px">Você cria um App no Mercado Livre e cola aqui o <b>Client ID</b>, <b>Client Secret</b> e a <b>Redirect URI</b>.</div>
+
+  <form method="post" action="/integracoes/mercadolivre/salvar">
+    <div class="grid grid-2">
+      <div>
+        <label>Client ID</label>
+        <input class="input" name="client_id" value="<%= (cfg && cfg.client_id) ? cfg.client_id : '' %>" placeholder="ex: 123456" />
+      </div>
+      <div>
+        <label>Client Secret</label>
+        <input class="input" name="client_secret" value="<%= (cfg && cfg.client_secret) ? cfg.client_secret : '' %>" placeholder="ex: abcdef..." />
+      </div>
+    </div>
+
+    <div style="margin-top:10px">
+      <label>Redirect URI</label>
+      <input class="input" name="redirect_uri" value="<%= (cfg && cfg.redirect_uri) ? cfg.redirect_uri : (suggestedRedirect || '') %>" placeholder="https://seu-dominio.com/integracoes/mercadolivre/oauth/callback" />
+      <div class="muted" style="margin-top:6px">Sugestão automática para esta instalação: <b><%= suggestedRedirect || '' %></b></div>
+    </div>
+
+    <div class="grid grid-2" style="margin-top:10px">
+      <div>
+        <label>Sync: últimos dias</label>
+        <input class="input" type="number" min="1" max="90" name="sync_lookback_days" value="<%= (cfg && cfg.sync_lookback_days) ? cfg.sync_lookback_days : 7 %>" />
+        <div class="muted" style="margin-top:6px">Usado para sua rotina (refino futuro). No MVP, buscamos os mais recentes.</div>
+      </div>
+      <div>
+        <label>Sync: limite por execução</label>
+        <input class="input" type="number" min="10" max="200" name="sync_limit" value="<%= (cfg && cfg.sync_limit) ? cfg.sync_limit : 50 %>" />
+        <div class="muted" style="margin-top:6px">Quanto maior, mais lento — mas importa mais pedidos de uma vez.</div>
+      </div>
+    </div>
+
+    <div style="margin-top:10px">
+      <label>Webhook secret (proteção)</label>
+      <div class="muted" style="margin-bottom:6px">Use este segredo como parâmetro na URL do webhook (recomendado) ou no header <code>x-acrilsoft-webhook-secret</code>.</div>
+      <div class="row" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap">
+        <input class="input" readonly value="<%= (cfg && cfg.webhook_secret) ? cfg.webhook_secret : '' %>" style="max-width:340px" />
+        <button class="btn btn-outline" type="submit" name="regen_secret" value="1">Gerar novo secret</button>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:10px; margin-top:12px; flex-wrap:wrap">
+      <button class="btn btn-primary" type="submit">Salvar</button>
+      <a class="btn btn-outline" href="/integracoes/mercadolivre/oauth/iniciar">Conectar conta (OAuth)</a>
+      <button class="btn btn-outline" type="submit" formaction="/integracoes/mercadolivre/sync" formmethod="post">Sincronizar pedidos agora</button>
+    </div>
+  </form>
+</div>
+
+<div class="card" style="margin-top:14px">
+  <div class="card-title">Status</div>
+  <div class="grid grid-2">
+    <div>
+      <div class="muted">Conectado</div>
+      <div><b><%= (cfg && cfg.access_token) ? 'SIM' : 'NÃO' %></b></div>
+    </div>
+    <div>
+      <div class="muted">Seller ID</div>
+      <div><b><%= (cfg && cfg.seller_id) ? cfg.seller_id : '-' %></b></div>
+    </div>
+    <div>
+      <div class="muted">Expira em</div>
+      <div><b><%= (cfg && cfg.token_expires_at) ? cfg.token_expires_at : '-' %></b></div>
+    </div>
+    <div>
+      <div class="muted">Última sincronização</div>
+      <div><b><%= (cfg && cfg.last_sync_at) ? cfg.last_sync_at : '-' %></b></div>
+    </div>
+  </div>
+
+  <div style="margin-top:10px">
+    <div class="muted">Webhook URL (configure no Mercado Livre):</div>
+    <div><b><%= webhookUrl || '' %></b></div>
+    <div class="muted" style="margin-top:6px">
+      Sugestão (com secret): <b><%= (webhookUrl || '') %>?secret=<%= (cfg && cfg.webhook_secret) ? cfg.webhook_secret : '' %></b>
+    </div>
+  </div>
+</div>
+
+
+<div class="card" style="margin-top:14px">
+  <div class="card-title">Produtos (Preço / Estoque)</div>
+  <div class="muted" style="margin-bottom:10px">
+    Para sincronizar <b>preço</b> e <b>estoque</b> você precisa mapear cada produto do Catálogo para o <b>ID do anúncio</b> na plataforma.
+    Depois é só clicar em <b>Sincronizar Produtos</b>.
+  </div>
+
+  <form method="post" action="/integracoes/mercadolivre/produtos/mapeamentos">
+    <div style="overflow:auto">
+      <table class="tbl" style="min-width:860px">
+        <thead>
+          <tr>
+            <th>Produto</th>
+            <th>SKU</th>
+            <th>Preço Venda</th>
+            <th>Estoque</th>
+            <th>ID anúncio (ML)</th>
+            <th>SKU externo</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% 
+            // Evita ReferenceError quando a rota não enviar as variáveis
+            const _catalogoMap = (typeof catalogoMap !== 'undefined' && catalogoMap) ? catalogoMap : [];
+            const _catalogoProdutos = (typeof catalogoProdutos !== 'undefined' && catalogoProdutos) ? catalogoProdutos : [];
+            const mapIndex = new Map((_catalogoMap||[]).map(m => [Number(m.catalogo_produto_id), m]));
+            (_catalogoProdutos||[]).forEach((p, idx) => { 
+              const m = mapIndex.get(Number(p.id)) || {};
+          %>
+            <tr>
+              <td>
+                <div style="font-weight:700"><%= p.nome %></div>
+                <div class="muted">ID: <%= p.id %></div>
+                <input type="hidden" name="items[<%= idx %>][catalogo_produto_id]" value="<%= p.id %>"/>
+              </td>
+              <td><%= p.sku || '-' %></td>
+              <td>R$ <%= (Number(p.preco_venda||0)).toFixed(2) %></td>
+              <td><%= (Number(p.estoque_atual||0)) %></td>
+              <td>
+                <input class="input" name="items[<%= idx %>][external_item_id]" value="<%= m.external_item_id || '' %>" placeholder="ex: MLB1234567890" />
+              </td>
+              <td>
+                <input class="input" name="items[<%= idx %>][external_sku]" value="<%= (m.external_sku || p.sku || '') %>" placeholder="SKU na plataforma" />
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+
+    <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap">
+      <button class="btn" type="submit">Salvar mapeamentos</button>
+      <button class="btn primary" type="submit" formaction="/integracoes/mercadolivre/produtos/sync">Sincronizar Produtos</button>
+    </div>
+    <div class="muted" style="margin-top:8px">
+      Mercado Livre: a atualização de estoque e preço é feita via <code>PUT /items</code>.
+    </div>
+  </form>
+</div>
+
+
+<style>
+  .alert{ padding:10px 12px; border-radius:10px; margin:10px 0; }
+  .alert.success{ background:#e7f7ee; border:1px solid #b8e6cb; }
+  .alert.error{ background:#fdecec; border:1px solid #f6b5b5; }
+  .grid{ display:grid; gap:10px; }
+  .grid-2{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  @media (max-width: 760px){ .grid-2{ grid-template-columns: 1fr; } }
+  label{ display:block; font-weight:600; margin-bottom:6px; }
+  .input{ width:100%; padding:10px 12px; border-radius:10px; border:1px solid rgba(0,0,0,.14); }
+  .card{ background: var(--card-bg, rgba(255,255,255,.7)); border:1px solid rgba(0,0,0,.08); border-radius:14px; padding:14px; }
+  .card-title{ font-weight:700; margin-bottom:10px; }
+</style>

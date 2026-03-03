@@ -1,0 +1,606 @@
+<%
+  const it = Array.isArray(itens) ? itens : [];
+  const clientesList = Array.isArray(clientes) ? clientes : [];
+  const cat = Array.isArray(catalogoProdutos) ? catalogoProdutos : [];
+  const o = orcamento;
+
+  const clienteNome = (o && (o.cliente_nome || o.cliente_nome_avulso)) || '—';
+  const whatsapp = o.cliente_whatsapp_eff || o.cliente_whatsapp || '';
+  const email = o.cliente_email_eff || o.cliente_email || '';
+  const doc = o.cliente_documento_eff || o.cliente_documento || '';
+
+  const money = (v) => (typeof formatCurrency === 'function') ? formatCurrency(v || 0) : (v || 0);
+
+  const subtotal = Number(o.subtotal || 0);
+  const desconto = Number(o.desconto || 0);
+  const frete = Number(o.frete_valor || 0);
+  const total = Number(o.total || 0);
+
+  const custoTotal = it.reduce((acc, x) => acc + (Number(x.custo_unitario||0) * Number(x.quantidade||0)), 0);
+  const vendaBruta = it.reduce((acc, x) => acc + (Number(x.valor_unitario||0) * Number(x.quantidade||0)), 0);
+  const descItens = it.reduce((acc, x) => acc + (Number(x.desconto_item||0)), 0);
+  const lucroEstimado = (vendaBruta - custoTotal - descItens - desconto);
+  const margemPct = total > 0 ? (lucroEstimado / total) * 100 : 0;
+
+  function fmtPct(v){
+    const n = Number(v||0);
+    return `${n.toFixed(1)}%`;
+  }
+%>
+
+<style>
+  .proposal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+  .proposal-brand{display:flex;align-items:center;gap:10px;}
+  .proposal-brand .logo{width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg, rgba(99,102,241,.18), rgba(34,211,238,.18));display:flex;align-items:center;justify-content:center;font-weight:900;}
+  .proposal-brand .name{font-weight:900;font-size:18px;line-height:1.1;}
+  .proposal-brand .sub{color:var(--muted);font-size:12px;}
+  .proposal-title{font-size:22px;font-weight:900;letter-spacing:-.02em;}
+  .proposal-kpis{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;}
+  .proposal-kpis .k{min-width:160px;border:1px solid var(--border);background:var(--card);border-radius:14px;padding:10px 12px;}
+  .proposal-kpis .k .l{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.12em;}
+  .proposal-kpis .k .v{font-weight:900;font-size:16px;}
+  .proposal-kpis .k.primary{box-shadow:0 10px 24px rgba(0,0,0,.06);}
+
+  .section-title{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px;}
+  .section-title .t{font-weight:900;font-size:15px;}
+  .section-title .s{color:var(--muted);font-size:12px;}
+  .hint{color:var(--muted);font-size:12px;margin-top:6px;}
+
+  /* Layout de formulário (proposta) */
+  .proposal-form .input, .proposal-form .select, .proposal-form textarea, .proposal-form select, .proposal-form input{ width:100%; box-sizing:border-box; }
+  .grid.grid-2{ grid-template-columns: repeat(2, minmax(260px, 1fr)); }
+  @media (max-width: 980px){
+    .grid.grid-2{ grid-template-columns: 1fr; }
+  }
+
+  .kv{display:grid;grid-template-columns: 1fr 1fr;gap:10px;}
+  .kv .item{border:1px solid var(--border);border-radius:14px;padding:10px 12px;background:var(--card);}
+  .kv .item .k{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.12em;}
+  .kv .item .v{font-weight:800;margin-top:2px;}
+  @media (max-width: 980px){ .kv{grid-template-columns:1fr;} }
+
+  .proposal-table thead th{font-size:12px;letter-spacing:.12em;text-transform:uppercase;}
+  .sticky-actions{display:flex;gap:10px;flex-wrap:wrap;}
+  details.inline > summary{list-style:none;cursor:pointer;}
+  details.inline > summary::-webkit-details-marker{display:none;}
+
+  /* Itens (Adicionar item) */
+  .items-block__head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;}
+  .items-add-toggle{width:100%;}
+  .items-add-toggle > summary{margin-left:auto;list-style:none;cursor:pointer;}
+  .items-add-toggle > summary::-webkit-details-marker{display:none;}
+  .items-add-panel{padding-top:10px;width:100%;}
+  .items-add-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:16px;width:100%;max-width:100%;align-items:start;}
+  .items-add-grid *{min-width:0;}
+
+  .items-add-grid form label{display:block;font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin:0 0 6px;}
+  .items-add-grid form input,
+  .items-add-grid form select,
+  .items-add-grid form textarea{width:100%;display:block;box-sizing:border-box;}
+
+  /* Grids utilitários (uso dentro dos cards de item) */
+  .grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;}
+  .grid-3{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;}
+</style>
+
+<div class="page orc-produtos">
+  <div class="card" style="margin-top:10px;">
+    <div class="card-body">
+      <div class="proposal-head">
+        <div>
+          <div class="proposal-brand">
+            <div class="logo">A</div>
+            <div>
+              <div class="name">Acrilsoft</div>
+              <div class="sub">Proposta Comercial • Orçamento de Produtos</div>
+            </div>
+          </div>
+          <div style="margin-top:10px;" class="proposal-title">Orçamento #<%= o.id %></div>
+          <div class="hint">Use esta tela como proposta comercial: cliente + itens + condições + layout.</div>
+
+          <div class="proposal-kpis">
+            <div class="k"><div class="l">Status</div><div class="v"><%= String(o.status||'RASCUNHO').toUpperCase() %></div></div>
+            <div class="k"><div class="l">Cliente</div><div class="v"><%= clienteNome %></div></div>
+            <div class="k"><div class="l">Itens</div><div class="v"><%= it.length %></div></div>
+            <div class="k primary"><div class="l">Total</div><div class="v"><%= money(total) %></div></div>
+          </div>
+        </div>
+
+        <div class="sticky-actions">
+          <a class="btn btn-outline" href="/orcamentos/<%= o.id %>/imprimir" target="_blank">Imprimir</a>
+          <a class="btn btn-outline" href="/orcamentos/<%= o.id %>/baixar-pdf" target="_blank">Salvar PDF</a>
+          <% if (o.pedido_id) { %>
+            <a class="btn btn-primary" href="/pedidos/<%= o.pedido_id %>">Abrir Pedido</a>
+          <% } else { %>
+            <form method="POST" action="/orcamentos/<%= o.id %>/converter-pedido" style="display:inline;">
+              <button class="btn btn-primary" type="submit">Converter em Pedido</button>
+            </form>
+          <% } %>
+          <a class="btn btn-secondary" href="/orcamentos">Voltar</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid" style="grid-template-columns: 1.65fr 1fr; gap: 12px; margin-top:12px; align-items:start;">
+    <div>
+      <!-- Cliente (visual de proposta) -->
+      <div class="card client-section">
+        <div class="card-body">
+          <div class="section-title">
+            <div>
+              <div class="t">Dados do cliente</div>
+              <div class="s">Informações exibidas na proposta/PDF.</div>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-edit-cliente">Editar</button>
+          </div>
+
+          <div id="cliente-edit-box" class="cliente-edit-box" hidden>
+            <div style="padding-top:10px;">
+              <form class="proposal-form" method="POST" action="/orcamentos/<%= o.id %>/atualizar">
+                  <div class="grid grid-2">
+                    <div>
+                      <label>Cliente cadastrado</label>
+                      <select name="cliente_id" class="input">
+                        <option value="">— Selecionar —</option>
+                        <% clientesList.forEach((c) => { %>
+                          <option value="<%= c.id %>" <%= String(o.cliente_id||'') === String(c.id) ? 'selected' : '' %>><%= (c.nome_exibicao || c.nome || ('Cliente #' + c.id)) %></option>
+                        <% }) %>
+                      </select>
+                      <div class="hint">Se selecionar, os dados do cliente podem sobrescrever campos avulsos.</div>
+                    </div>
+
+                    <div>
+                      <label>Status</label>
+                      <% const st = String(o.status||'RASCUNHO').toUpperCase(); %>
+                      <select name="status" class="input">
+                        <% ['RASCUNHO','ENVIADO','APROVADO','REPROVADO','CONVERTIDO'].forEach((s) => { %>
+                          <option value="<%= s %>" <%= st===s?'selected':'' %>><%= s %></option>
+                        <% }) %>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label>Nome do cliente (avulso)</label>
+                      <input name="cliente_nome_avulso" class="input" value="<%= o.cliente_nome_avulso || '' %>" placeholder="Ex: Amora Maker" />
+                    </div>
+                    <div>
+                      <label>WhatsApp</label>
+                      <input name="cliente_whatsapp" class="input" value="<%= whatsapp %>" placeholder="Ex: 11999999999" />
+                    </div>
+
+                    <div>
+                      <label>E-mail</label>
+                      <input name="cliente_email" class="input" value="<%= email %>" />
+                    </div>
+                    <div>
+                      <label>CPF/CNPJ</label>
+                      <input name="cliente_documento" class="input" value="<%= doc %>" />
+                    </div>
+
+                    <div>
+                      <label>Endereço</label>
+                      <input name="cliente_endereco" class="input" value="<%= o.cliente_endereco || '' %>" placeholder="Rua, número, bairro" />
+                    </div>
+                    <div class="grid" style="grid-template-columns: 1fr 110px; gap:10px;">
+                      <div>
+                        <label>Cidade</label>
+                        <input name="cliente_cidade" class="input" value="<%= o.cliente_cidade || '' %>" />
+                      </div>
+                      <div>
+                        <label>UF</label>
+                        <input name="cliente_uf" class="input" value="<%= o.cliente_uf || '' %>" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label>Vendedor</label>
+                      <input name="vendedor_nome" class="input" value="<%= o.vendedor_nome || '' %>" />
+                    </div>
+                    <div>
+                      <label>Canal</label>
+                      <input name="canal_venda" class="input" value="<%= o.canal_venda || '' %>" placeholder="Loja / WhatsApp / ML / Shopee..." />
+                    </div>
+
+                    <div>
+                      <label>Validade (AAAA-MM-DD)</label>
+                      <input name="data_validade" class="input" value="<%= o.data_validade || '' %>" placeholder="2026-03-10" />
+                    </div>
+                    <div>
+                      <label>Prazo de entrega</label>
+                      <input name="prazo_entrega" class="input" value="<%= o.prazo_entrega || '' %>" placeholder="Ex: 10 a 12 dias úteis" />
+                    </div>
+
+                    <div>
+                      <label>Condições de pagamento</label>
+                      <textarea name="condicoes_pagamento" class="input" rows="3"><%= o.condicoes_pagamento || '' %></textarea>
+                    </div>
+                    <div>
+                      <label>Garantia</label>
+                      <textarea name="garantia" class="input" rows="3"><%= o.garantia || '' %></textarea>
+                    </div>
+
+                    <div>
+                      <label>Frete</label>
+                      <input name="frete_valor" class="input" value="<%= (o.frete_valor ?? 0) %>" />
+                    </div>
+                    <div>
+                      <label>Desconto (valor)</label>
+                      <input name="desconto" class="input" value="<%= (o.desconto ?? 0) %>" />
+                    </div>
+
+                    <div>
+                      <label>Layout/Arte (observação)</label>
+                      <input name="layout_obs" class="input" value="<%= o.layout_obs || '' %>" placeholder="Ex: Arte aprovada / ajustes pendentes" />
+                    </div>
+
+                    <div>
+                      <label>Observações da proposta (visível no cliente)</label>
+                      <textarea name="observacoes_vendedor" class="input" rows="3"><%= o.observacoes_vendedor || '' %></textarea>
+                    </div>
+                    <div>
+                      <label>Observações internas</label>
+                      <textarea name="observacoes_internas" class="input" rows="3"><%= o.observacoes_internas || '' %></textarea>
+                    </div>
+                  </div>
+
+                  <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:10px;">
+                    <button class="btn btn-primary" type="submit">Salvar</button>
+                  </div>
+              </form>
+            </div>
+          </div>
+
+          <script>
+            (function(){
+              var btn = document.getElementById('btn-edit-cliente');
+              var box = document.getElementById('cliente-edit-box');
+              if(!btn || !box) return;
+
+              btn.addEventListener('click', function(){
+                var isHidden = box.hasAttribute('hidden');
+                if(isHidden){
+                  box.removeAttribute('hidden');
+                  btn.textContent = "Fechar";
+                  var first = box.querySelector('select, input, textarea');
+                  if(first) first.focus();
+                }else{
+                  box.setAttribute('hidden', "");
+                  btn.textContent = "Editar";
+                }
+              });
+            })();
+          </script>
+
+          <div class="kv" style="margin-top:8px;">
+            <div class="item"><div class="k">Cliente</div><div class="v"><%= clienteNome %></div></div>
+            <div class="item"><div class="k">Vendedor</div><div class="v"><%= o.vendedor_nome || '—' %></div></div>
+            <div class="item"><div class="k">WhatsApp</div><div class="v"><%= whatsapp || '—' %></div></div>
+            <div class="item"><div class="k">E-mail</div><div class="v"><%= email || '—' %></div></div>
+            <div class="item"><div class="k">CPF/CNPJ</div><div class="v"><%= doc || '—' %></div></div>
+            <div class="item"><div class="k">Canal</div><div class="v"><%= o.canal_venda || '—' %></div></div>
+            <div class="item"><div class="k">Validade</div><div class="v"><%= o.data_validade || '—' %></div></div>
+            <div class="item"><div class="k">Prazo de entrega</div><div class="v"><%= o.prazo_entrega || '—' %></div></div>
+          </div>
+
+          <% if (o.cliente_endereco || o.cliente_cidade || o.cliente_uf) { %>
+            <div class="hint" style="margin-top:10px;"><strong>Endereço:</strong> <%= [o.cliente_endereco, o.cliente_cidade, o.cliente_uf].filter(Boolean).join(' - ') %></div>
+          <% } %>
+        </div>
+      </div>
+
+      <!-- Itens -->
+      <div class="card" style="margin-top:12px;">
+        <div class="card-body">
+          <div class="items-block__head">
+            <div>
+              <div class="t">Itens da proposta</div>
+              <div class="s">Revenda/estoque e itens sob medida.</div>
+            </div>
+
+            <details class="items-add-toggle">
+              <summary class="btn btn-primary btn-sm">+ Adicionar item</summary>
+              <div class="items-add-panel">
+                <div class="items-add-grid">
+                  <div class="card" style="border:1px solid var(--border);">
+                    <div class="card-body">
+                      <div style="font-weight:900; margin-bottom:8px;">Produto do Catálogo (Revenda)</div>
+                      <form method="POST" action="/orcamentos/<%= o.id %>/itens/adicionar">
+                        <input type="hidden" name="tipo_item" value="ESTOQUE" />
+                        <label>Produto</label>
+                        <select name="produto_id" class="input" required>
+                          <option value="">— Selecionar —</option>
+                          <% cat.forEach((p) => { %>
+                            <option value="<%= p.id %>"><%= p.nome %><% if (p.sku) { %> (<%= p.sku %>)<% } %></option>
+                          <% }) %>
+                        </select>
+                        <div class="grid-2" style="margin-top:10px;">
+                          <div>
+                            <label>Quantidade</label>
+                            <input class="input" name="quantidade" value="1" />
+                          </div>
+                          <div>
+                            <label>Desconto (valor)</label>
+                            <input class="input" name="desconto_item" value="0" />
+                          </div>
+                        </div>
+                        <div style="display:flex; justify-content:flex-end; margin-top:10px;">
+                          <button class="btn btn-primary" type="submit">Adicionar</button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+
+                  <div class="card" style="border:1px solid var(--border);">
+                    <div class="card-body">
+                      <div style="font-weight:900; margin-bottom:8px;">Item Sob Medida</div>
+                      <form method="POST" action="/orcamentos/<%= o.id %>/itens/adicionar">
+                        <input type="hidden" name="tipo_item" value="SOB_MEDIDA" />
+                        <label>Descrição</label>
+                        <input class="input" name="descricao" placeholder="Ex: Troféu acrílico personalizado" required />
+                        <div class="grid-2" style="margin-top:10px;">
+                          <div>
+                            <label>Categoria</label>
+                            <input class="input" name="categoria" placeholder="Troféu / Placa / Caixa..." />
+                          </div>
+                          <div>
+                            <label>Material</label>
+                            <input class="input" name="material" placeholder="Acrílico / MDF / Metal..." />
+                          </div>
+                        </div>
+                        <div class="grid-3" style="margin-top:10px;">
+                          <div><label>Largura (mm)</label><input class="input" name="largura_mm" /></div>
+                          <div><label>Altura (mm)</label><input class="input" name="altura_mm" /></div>
+                          <div><label>Espessura (mm)</label><input class="input" name="espessura_mm" /></div>
+                        </div>
+                        <div class="grid-2" style="margin-top:10px;">
+                          <div><label>Qtd</label><input class="input" name="quantidade" value="1" /></div>
+                          <div><label>Unidade</label><input class="input" name="unidade" value="UN" /></div>
+                          <div><label>Custo unitário</label><input class="input" name="custo_unitario" value="0" /></div>
+                          <div><label>Valor unitário</label><input class="input" name="valor_unitario" value="0" /></div>
+                          <div><label>Desconto (valor)</label><input class="input" name="desconto_item" value="0" /></div>
+                          <div><label>Obs</label><input class="input" name="observacao" placeholder="Detalhes do item" /></div>
+                        </div>
+                        <div style="display:flex; justify-content:flex-end; margin-top:10px;">
+                          <button class="btn btn-primary" type="submit">Adicionar</button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </details>
+          </div>
+
+          <div class="table-responsive" style="margin-top:10px;">
+            <table class="table proposal-table">
+              <thead>
+                <tr>
+                  <th style="width:110px;">Tipo</th>
+                  <th>Descrição</th>
+                  <th style="width:90px;" class="text-end">Qtd</th>
+                  <th style="width:110px;">Un</th>
+                  <th style="width:150px;" class="text-end">V. Unit</th>
+                  <th style="width:140px;" class="text-end">Desc</th>
+                  <th style="width:160px;" class="text-end">Total</th>
+                  <th style="width:110px;">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% if (!it.length) { %>
+                  <tr><td colspan="8" class="muted">Adicione itens para compor a proposta.</td></tr>
+                <% } %>
+                <% it.forEach((x) => { %>
+                  <tr>
+                    <td><span class="chip chip-info"><%= String(x.tipo_item||'SOB_MEDIDA').toUpperCase() %></span></td>
+                    <td>
+                      <div style="font-weight:800;"><%= x.descricao || (x.produto_nome || '—') %></div>
+                      <div class="muted" style="font-size:12px;">
+                        <% if (x.categoria) { %><span><%= x.categoria %></span><% } %>
+                        <% if (x.material) { %><span> • <%= x.material %></span><% } %>
+                        <% if (x.largura_mm && x.altura_mm) { %><span> • <%= x.largura_mm %>x<%= x.altura_mm %>mm</span><% } %>
+                        <% if (x.espessura_mm) { %><span> • <%= x.espessura_mm %>mm</span><% } %>
+                        <% if (x.observacao) { %><span> • <%= x.observacao %></span><% } %>
+                      </div>
+                    </td>
+                    <td class="text-end"><%= (x.quantidade ?? 0) %></td>
+                    <td><%= x.unidade || 'UN' %></td>
+                    <td class="text-end"><%= money(x.valor_unitario || 0) %></td>
+                    <td class="text-end"><%= money(x.desconto_item || 0) %></td>
+                    <td class="text-end"><strong><%= money(x.total_item || 0) %></strong></td>
+                    <td>
+                      <details>
+                        <summary class="btn btn-sm btn-secondary">Editar</summary>
+                        <div style="padding:10px 0;">
+                          <form method="POST" action="/orcamentos/<%= o.id %>/itens/<%= x.id %>/atualizar">
+                            <div class="grid grid-2">
+                              <div>
+                                <label>Descrição</label>
+                                <input class="input" name="descricao" value="<%= x.descricao || '' %>" />
+                              </div>
+                              <div>
+                                <label>Categoria</label>
+                                <input class="input" name="categoria" value="<%= x.categoria || '' %>" />
+                              </div>
+                              <div>
+                                <label>Material</label>
+                                <input class="input" name="material" value="<%= x.material || '' %>" />
+                              </div>
+                              <div>
+                                <label>Unidade</label>
+                                <input class="input" name="unidade" value="<%= x.unidade || 'UN' %>" />
+                              </div>
+                              <div>
+                                <label>Largura (mm)</label>
+                                <input class="input" name="largura_mm" value="<%= x.largura_mm || '' %>" />
+                              </div>
+                              <div>
+                                <label>Altura (mm)</label>
+                                <input class="input" name="altura_mm" value="<%= x.altura_mm || '' %>" />
+                              </div>
+                              <div>
+                                <label>Espessura (mm)</label>
+                                <input class="input" name="espessura_mm" value="<%= x.espessura_mm || '' %>" />
+                              </div>
+                              <div>
+                                <label>Quantidade</label>
+                                <input class="input" name="quantidade" value="<%= x.quantidade || 1 %>" />
+                              </div>
+                              <div>
+                                <label>Custo unitário</label>
+                                <input class="input" name="custo_unitario" value="<%= x.custo_unitario || 0 %>" />
+                              </div>
+                              <div>
+                                <label>Valor unitário</label>
+                                <input class="input" name="valor_unitario" value="<%= x.valor_unitario || 0 %>" />
+                              </div>
+                              <div>
+                                <label>Desconto (valor)</label>
+                                <input class="input" name="desconto_item" value="<%= x.desconto_item || 0 %>" />
+                              </div>
+                              <div>
+                                <label>Obs</label>
+                                <input class="input" name="observacao" value="<%= x.observacao || '' %>" />
+                              </div>
+                            </div>
+                            <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:10px;">
+                              <button class="btn btn-primary" type="submit">Salvar item</button>
+                            </div>
+                          </form>
+                          <form method="POST" action="/orcamentos/<%= o.id %>/itens/<%= x.id %>/excluir" onsubmit="return confirm('Excluir este item?');" style="margin-top:8px;">
+                            <button class="btn btn-danger btn-sm" type="submit">Excluir</button>
+                          </form>
+                        </div>
+                      </details>
+                    </td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Condições e observações (visual de proposta) -->
+      <div class="card" style="margin-top:12px;">
+        <div class="card-body">
+          <div class="section-title">
+            <div>
+              <div class="t">Condições e observações</div>
+              <div class="s">Conteúdo que ajuda a fechar a venda.</div>
+            </div>
+          </div>
+
+          <div class="kv">
+            <div class="item"><div class="k">Pagamento</div><div class="v"><%= o.condicoes_pagamento || '—' %></div></div>
+            <div class="item"><div class="k">Garantia</div><div class="v"><%= o.garantia || '—' %></div></div>
+          </div>
+
+          <% if (o.observacoes_vendedor) { %>
+            <div style="margin-top:10px;" class="item">
+              <div class="k">Observações da proposta</div>
+              <div class="v"><%= o.observacoes_vendedor %></div>
+            </div>
+          <% } %>
+
+          <% if (o.observacoes_internas) { %>
+            <div style="margin-top:10px;" class="item">
+              <div class="k">Observações internas</div>
+              <div class="v"><%= o.observacoes_internas %></div>
+            </div>
+          <% } %>
+        </div>
+      </div>
+
+      <!-- Layout / Arte -->
+      <div class="card" style="margin-top:12px;">
+        <div class="card-body">
+          <div class="section-title">
+            <div>
+              <div class="t">Layout / Arte (anexo)</div>
+              <div class="s">PDF ou imagem do layout da proposta.</div>
+            </div>
+          </div>
+
+          <% if (o.layout_arquivo) { %>
+            <div class="kv">
+              <div class="item" style="grid-column: 1 / -1;">
+                <div class="k">Arquivo</div>
+                <div class="v"><a href="<%= o.layout_arquivo %>" target="_blank">Abrir anexo</a></div>
+              </div>
+            </div>
+          <% } else { %>
+            <div class="hint">Nenhum anexo enviado ainda.</div>
+          <% } %>
+
+          <form method="POST" action="/orcamentos/<%= o.id %>/layout" enctype="multipart/form-data" style="margin-top:10px;">
+            <label>Anexar layout (PDF ou imagem)</label>
+            <input class="input" type="file" name="layout_file" accept="application/pdf,image/*" />
+            <div style="display:flex; justify-content:flex-end; margin-top:10px;">
+              <button class="btn btn-secondary" type="submit">Enviar anexo</button>
+            </div>
+          </form>
+
+          <% if (o.layout_obs) { %>
+            <div class="hint" style="margin-top:8px;"><strong>Obs:</strong> <%= o.layout_obs %></div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar resumo -->
+    <div>
+      <div class="card">
+        <div class="card-body">
+          <div class="section-title">
+            <div>
+              <div class="t">Resumo financeiro</div>
+              <div class="s">Totais e margem estimada.</div>
+            </div>
+          </div>
+
+          <div class="kpi-grid" style="margin-top:6px;">
+            <div class="kpi-card"><div class="kpi-label">Subtotal</div><div class="kpi-value"><%= money(subtotal) %></div></div>
+            <div class="kpi-card"><div class="kpi-label">Desconto</div><div class="kpi-value"><%= money(desconto) %></div></div>
+            <div class="kpi-card"><div class="kpi-label">Frete</div><div class="kpi-value"><%= money(frete) %></div></div>
+            <div class="kpi-card kpi-card-primary"><div class="kpi-label">Total</div><div class="kpi-value"><%= money(total) %></div></div>
+          </div>
+
+          <div style="margin-top:12px;" class="kv">
+            <div class="item"><div class="k">Lucro estimado</div><div class="v"><%= money(lucroEstimado) %></div></div>
+            <div class="item"><div class="k">Margem estimada</div><div class="v"><%= fmtPct(margemPct) %></div></div>
+          </div>
+
+          <div class="hint" style="margin-top:10px;">* Margem baseada nos custos informados nos itens (revenda e sob medida).</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px;">
+        <div class="card-body">
+          <div class="section-title">
+            <div>
+              <div class="t">Ações rápidas</div>
+              <div class="s">Atalhos para operação.</div>
+            </div>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <% if (whatsapp) { %>
+              <a class="btn btn-secondary" target="_blank" href="https://wa.me/55<%= String(whatsapp).replace(/\D/g,'') %>">Abrir WhatsApp do cliente</a>
+            <% } %>
+            <% if (o.layout_arquivo) { %>
+              <a class="btn btn-secondary" target="_blank" href="<%= o.layout_arquivo %>">Abrir layout/anexo</a>
+            <% } %>
+            <% if (!o.pedido_id) { %>
+              <form method="POST" action="/orcamentos/<%= o.id %>/converter-pedido">
+                <button class="btn btn-primary" type="submit" style="width:100%;">Converter em Pedido</button>
+              </form>
+            <% } else { %>
+              <a class="btn btn-primary" href="/pedidos/<%= o.pedido_id %>">Abrir Pedido</a>
+            <% } %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

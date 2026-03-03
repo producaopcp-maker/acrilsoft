@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Impressão Orçamento Produtos #<%= orcamento.id %></title>
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    body{ background:#fff; }
+    @page{ size:A4; margin:12mm; }
+
+    .print-shell{ max-width: 980px; margin: 22px auto; padding: 0 14px; }
+    .print-actions{ display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
+
+    @media print{
+      .print-actions{ display:none !important; }
+      body{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .print-shell{ max-width: 190mm; margin:0 auto; padding:0; }
+      .card{ break-inside: avoid; page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <div class="print-shell">
+    <% if (!isPdf) { %>
+      <div class="print-actions">
+        <a class="btn btn-primary" href="/orcamentos/<%= orcamento.id %>/baixar-pdf">Salvar PDF</a>
+        <a class="btn btn-ghost" href="/orcamentos/<%= orcamento.id %>/whatsapp" target="_blank">Enviar WhatsApp</a>
+        <button class="btn btn-ghost" onclick="window.print()">Imprimir</button>
+        <a class="btn btn-ghost" href="javascript:window.close()">Fechar</a>
+      </div>
+    <% } %>
+
+    <% const fmt = (v) => Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2}); %>
+    <% const validadeTexto = (orcamento.data_validade || '').toString().trim(); %>
+
+    <div class="card">
+      <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px;">
+        <div>
+          <div class="h1">Orçamento de Produtos</div>
+          <div class="muted">#<b class="mono"><%= orcamento.id %></b> • Status: <b><%= String(orcamento.status || 'RASCUNHO').replace('_',' ') %></b></div>
+        </div>
+        <% if (logoUrl) { %>
+          <img src="<%= logoUrl %>" alt="Logo" style="max-height:72px; max-width:240px; object-fit:contain;" onerror="this.style.display='none'" />
+        <% } %>
+      </div>
+
+      <div style="margin-top:10px; display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+        <div><span class="muted">Cliente:</span> <b><%= (orcamento.cliente_nome || orcamento.cliente_nome_avulso || '-') %></b></div>
+        <div><span class="muted">WhatsApp:</span> <b class="mono"><%= (orcamento.cliente_whatsapp_eff || orcamento.cliente_whatsapp || '-') %></b></div>
+        <div><span class="muted">Validade:</span> <b><%= validadeTexto || '-' %></b></div>
+        <div><span class="muted">Prazo de entrega:</span> <b><%= (orcamento.prazo_entrega || '-') %></b></div>
+      </div>
+
+      <% if (orcamento.canal_venda || orcamento.vendedor_nome) { %>
+        <div style="margin-top:10px; display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+          <div><span class="muted">Vendedor:</span> <b><%= (orcamento.vendedor_nome || '-') %></b></div>
+          <div><span class="muted">Canal:</span> <b><%= (orcamento.canal_venda || '-') %></b></div>
+        </div>
+      <% } %>
+
+      <% if (orcamento.observacoes_vendedor) { %>
+        <div style="margin-top:10px;"><span class="muted">Observações:</span> <b><%= orcamento.observacoes_vendedor %></b></div>
+      <% } %>
+    </div>
+
+    <div class="card">
+      <div class="h1">Condições comerciais</div>
+      <div style="margin-top:10px; display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+        <div><span class="muted">Pagamento:</span> <b><%= (orcamento.condicoes_pagamento || '-') %></b></div>
+        <div><span class="muted">Garantia:</span> <b><%= (orcamento.garantia || '-') %></b></div>
+        <div><span class="muted">Frete (R$):</span> <b>R$ <%= fmt(orcamento.frete_valor || 0) %></b></div>
+        <div><span class="muted">Desconto (R$):</span> <b>R$ <%= fmt(orcamento.desconto || 0) %></b></div>
+      </div>
+      <% if (orcamento.layout_obs) { %>
+        <div style="margin-top:10px;"><span class="muted">Layout/Arte:</span> <b><%= orcamento.layout_obs %></b></div>
+      <% } %>
+    </div>
+
+    <div class="card">
+      <div class="h1">Itens</div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Produto</th>
+              <th style="text-align:right;">Qtd</th>
+              <th style="text-align:right;">Unit.</th>
+              <th style="text-align:right;">Desconto</th>
+              <th style="text-align:right;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (!itens || itens.length === 0) { %>
+              <tr><td colspan="5" class="td-empty">Nenhum item.</td></tr>
+            <% } %>
+            <% (itens || []).forEach(it => {
+                 const qtd = Math.max(1, Number(it.quantidade||1));
+                 const unit = Number(it.valor_unitario || 0);
+                 const desc = Number(it.desconto_item || 0);
+                 const total = Number(it.total_item || ((qtd * unit) - desc));
+                 const nome = it.produto_nome || it.nome || it.descricao || 'Item';
+            %>
+              <tr>
+                <td>
+                  <b><%= nome %></b>
+                  <% if (it.descricao && (it.descricao !== nome)) { %>
+                    <div class="muted" style="font-size:12px; margin-top:2px;"><%= it.descricao %></div>
+                  <% } %>
+                  <% if (it.tipo_item) { %>
+                    <div class="muted" style="font-size:12px; margin-top:2px;">Tipo: <%= it.tipo_item %></div>
+                  <% } %>
+                </td>
+                <td style="text-align:right;"><b><%= qtd %></b></td>
+                <td style="text-align:right;">R$ <%= fmt(unit) %></td>
+                <td style="text-align:right;">R$ <%= fmt(desc) %></td>
+                <td style="text-align:right;"><b>R$ <%= fmt(total) %></b></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="h1">Resumo</div>
+      <div style="margin-top:10px; display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+        <div><span class="muted">Subtotal:</span> <b>R$ <%= fmt(orcamento.subtotal || 0) %></b></div>
+        <div><span class="muted">Frete:</span> <b>R$ <%= fmt(orcamento.frete_valor || 0) %></b></div>
+        <div><span class="muted">Desconto:</span> <b>R$ <%= fmt(orcamento.desconto || 0) %></b></div>
+        <div><span class="muted">TOTAL:</span> <b style="font-size:16px;">R$ <%= fmt(orcamento.total || 0) %></b></div>
+      </div>
+      <div class="muted" style="margin-top:10px; font-size:12px;">A aprovação deste orçamento confirma as condições comerciais acima.</div>
+    </div>
+  </div>
+</body>
+</html>

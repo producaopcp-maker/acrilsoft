@@ -1,0 +1,452 @@
+<div class="page-head">
+  <div>
+    <div class="h1">Calendário de saídas</div>
+    <div class="muted">Mostra as OPs abertas / em andamento / finalizadas com data de entrega</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head" style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+    <div>
+      <div class="h2">Agenda</div>
+      <div class="muted">Clique em uma OP para ver o resumo • Arraste para alterar a data (se tiver permissão)</div>
+    </div>
+    <div class="actions" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+      <span class="badge" id="calPermBadge"></span>
+    </div>
+  </div>
+
+  <div id="opsCalendar" style="padding: 10px;"></div>
+</div>
+
+<!-- Modal OP -->
+<div id="opModal" class="op-modal hidden" role="dialog" aria-modal="true" aria-labelledby="opModalTitle">
+  <div class="op-modal-backdrop" id="opModalBackdrop"></div>
+  <div class="op-modal-card" role="document">
+    <div class="op-modal-head">
+      <div>
+        <div class="op-modal-title" id="opModalTitle">OP</div>
+        <div class="muted" id="opModalSub">&nbsp;</div>
+      </div>
+      <button class="btn btn-ghost" id="opModalClose" aria-label="Fechar">✕</button>
+    </div>
+
+    <div class="op-modal-body">
+      <div class="op-grid">
+        <div>
+          <div class="label">Status</div>
+          <div id="opModalStatus" class="badge">-</div>
+        </div>
+        <div>
+          <div class="label">Entrega</div>
+          <div id="opModalEntrega"><b>-</b></div>
+        </div>
+        <div>
+          <div class="label">Cliente</div>
+          <div id="opModalCliente">-</div>
+        </div>
+        <div>
+          <div class="label">Vendedor</div>
+          <div id="opModalVendedor">-</div>
+        </div>
+        <div>
+          <div class="label">Produto</div>
+          <div id="opModalProduto">-</div>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;">
+        <div class="label">Observações (Cliente)</div>
+        <div class="op-box" id="opModalObs">-</div>
+      </div>
+      <div style="margin-top:10px;">
+        <div class="label">Observações internas</div>
+        <div class="op-box" id="opModalObsInt">-</div>
+      </div>
+
+      <div style="margin-top:12px;">
+        <div class="label">Últimas alterações</div>
+        <div class="op-box" id="opModalLogs" style="max-height:160px; overflow:auto;"></div>
+      </div>
+
+      <div class="op-modal-actions">
+        <a class="btn" id="opModalOpen" href="#">Abrir OP</a>
+        <button class="btn btn-ghost" id="btnSetAguard">Aguard. material</button>
+        <button class="btn btn-ghost" id="btnSetProd">Em produção</button>
+        <button class="btn" id="btnSetFinal">Finalizar</button>
+      </div>
+
+      <div class="muted" id="opModalHint" style="margin-top:8px; font-size:12px;"></div>
+    </div>
+  </div>
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/locales-all.global.min.js"></script>
+
+<style>
+  /* Status colors */
+  .fc .fc-event { border-radius: 8px; padding: 2px 6px; }
+  .fc .fc-event-title { font-weight: 700; }
+
+  .fc-event.status-ABERTA { background: #2563eb; border-color:#2563eb; }
+  .fc-event.status-EM_PRODUCAO { background: #f59e0b; border-color:#f59e0b; color:#111827; }
+  .fc-event.status-AGUARDANDO_MATERIAL { background: #a855f7; border-color:#a855f7; }
+  .fc-event.status-FINALIZADA { background: #16a34a; border-color:#16a34a; }
+  .fc-event.status-CANCELADA { background: #6b7280; border-color:#6b7280; }
+
+  .fc-event.op-overdue { box-shadow: 0 0 0 2px rgba(239,68,68,.55); }
+  @keyframes opPulse {
+    0% { transform: scale(1); filter: brightness(1); }
+    50% { transform: scale(1.02); filter: brightness(1.1); }
+    100% { transform: scale(1); filter: brightness(1); }
+  }
+  .fc-event.op-overdue { animation: opPulse 1.2s ease-in-out infinite; }
+
+  /* Mantém o calendário compacto (sem aquele "vazio" gigante). */
+  #opsCalendar { height: 420px; }
+
+  /* Modal */
+  .op-modal.hidden { display: none; }
+  .op-modal { position: fixed; inset: 0; z-index: 50; }
+  .op-modal-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.45); }
+  .op-modal-card { position: relative; margin: 8vh auto 0; width: 720px; max-width: 92vw; background: var(--card); border:1px solid var(--border); border-radius: 14px; box-shadow: 0 20px 70px rgba(0,0,0,.35); overflow: hidden; }
+  .op-modal-head { display:flex; justify-content:space-between; gap:10px; padding: 14px 14px 10px; border-bottom:1px solid var(--border); }
+  .op-modal-title { font-size: 18px; font-weight: 800; }
+  .op-modal-body { padding: 14px; }
+  .op-grid { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .op-box { background: rgba(148,163,184,.10); border:1px solid var(--border); border-radius: 10px; padding: 10px; white-space: pre-wrap; }
+  .op-modal-actions { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top: 14px; }
+
+  @media (prefers-color-scheme: dark) {
+    .op-box { background: rgba(148,163,184,.06); }
+  }
+
+  @media (max-width: 640px) {
+    /* Em telas pequenas, dá um pouco mais de altura e deixa scroll interno quando necessário. */
+    #opsCalendar { height: 520px; }
+    .op-grid { grid-template-columns: 1fr; }
+    .op-modal-actions { flex-direction: column; align-items: stretch; }
+    .op-modal-actions .btn { width: 100%; }
+    .fc .fc-toolbar { flex-wrap: wrap; gap: 6px; }
+  }
+</style>
+
+<script>
+  (function(){
+    const CAN_EDIT = <%= (canEditCalendar ? 'true' : 'false') %>;
+    const permBadge = document.getElementById('calPermBadge');
+    permBadge.textContent = CAN_EDIT ? 'Pode editar' : 'Somente visualização';
+    permBadge.className = 'badge ' + (CAN_EDIT ? '' : 'badge-ghost');
+
+    const modal = document.getElementById('opModal');
+    const backdrop = document.getElementById('opModalBackdrop');
+    const closeBtn = document.getElementById('opModalClose');
+
+    const elTitle = document.getElementById('opModalTitle');
+    const elSub = document.getElementById('opModalSub');
+    const elStatus = document.getElementById('opModalStatus');
+    const elEntrega = document.getElementById('opModalEntrega');
+    const elCliente = document.getElementById('opModalCliente');
+    const elVendedor = document.getElementById('opModalVendedor');
+    const elProduto = document.getElementById('opModalProduto');
+    const elObs = document.getElementById('opModalObs');
+    const elObsInt = document.getElementById('opModalObsInt');
+    const elLogs = document.getElementById('opModalLogs');
+    const elHint = document.getElementById('opModalHint');
+    const linkOpen = document.getElementById('opModalOpen');
+    const btnAguard = document.getElementById('btnSetAguard');
+    const btnProd = document.getElementById('btnSetProd');
+    const btnFinal = document.getElementById('btnSetFinal');
+
+    let currentOpId = null;
+    let currentEvent = null;
+
+    function normalizeStatus(st) {
+      st = String(st || 'ABERTA').toUpperCase();
+      // compatibilidade com bancos antigos
+      if (st === 'EM ANDAMENTO' || st === 'PRODUCAO' || st === 'PRODUÇÃO') return 'EM_PRODUCAO';
+      if (st === 'SEPARACAO' || st === 'SEPARAÇÃO') return 'EM_PRODUCAO';
+      return st.replace(/\s+/g, '_');
+    }
+
+    function isOverdue(event) {
+      const st = normalizeStatus(event.extendedProps?.status || event.extendedProps?.statusText || event.extendedProps?.status);
+      if (st === 'FINALIZADA' || st === 'CANCELADA') return false;
+      const d = event.start;
+      if (!d) return false;
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      const ev = new Date(d);
+      ev.setHours(0,0,0,0);
+      return ev < today;
+    }
+
+    function openModal() {
+      modal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+      setTimeout(() => closeBtn.focus(), 0);
+    }
+    function closeModal() {
+      modal.classList.add('hidden');
+      document.body.style.overflow = '';
+      currentOpId = null;
+      currentEvent = null;
+    }
+
+    closeBtn.addEventListener('click', closeModal);
+    backdrop.addEventListener('click', closeModal);
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeModal();
+    });
+
+    async function fetchJson(url) {
+      const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return await r.json();
+    }
+
+    function fmtStatusLabel(st) {
+      const s = normalizeStatus(st);
+      if (s === 'EM_PRODUCAO') return 'EM PRODUÇÃO';
+      if (s === 'AGUARDANDO_MATERIAL') return 'AGUARD. MATERIAL';
+      return s;
+    }
+
+    async function loadModal(opId) {
+      elLogs.textContent = 'Carregando...';
+      const op = await fetchJson('/api/ops/' + encodeURIComponent(opId) + '/resumo');
+      const logsResp = await fetchJson('/api/ops/' + encodeURIComponent(opId) + '/logs');
+
+      elTitle.textContent = op.codigo_op || ('OP #' + op.id);
+      elSub.textContent = op.prioridade ? ('Prioridade: ' + op.prioridade) : '';
+
+      const stNorm = normalizeStatus(op.status);
+      elStatus.textContent = fmtStatusLabel(op.status);
+      elStatus.className = 'badge';
+
+      elEntrega.innerHTML = '<b>' + (op.data_entrega || '-') + '</b>';
+      elCliente.textContent = op.cliente || '-';
+      if (elVendedor) elVendedor.textContent = op.vendedor_nome || '-';
+      elProduto.textContent = (op.produto_final || '-') + (op.quantidade_final ? (' • ' + op.quantidade_final) : '');
+      elObs.textContent = (op.observacoes || '-');
+      elObsInt.textContent = (op.observacoes_internas || '-');
+
+      linkOpen.href = '/ops/' + op.id;
+
+      // logs
+      const logs = (logsResp && logsResp.logs) ? logsResp.logs : [];
+      if (!logs.length) {
+        elLogs.textContent = 'Sem alterações registradas.';
+      } else {
+        elLogs.innerHTML = logs.map(l => {
+          const when = l.criado_em || '';
+          const who = l.usuario_nome || '—';
+          const campo = (l.campo || '');
+          const from = (l.valor_anterior == null ? '' : String(l.valor_anterior));
+          const to = (l.valor_novo == null ? '' : String(l.valor_novo));
+          return '<div style="margin-bottom:8px;">'
+            + '<div><b>' + who + '</b> • ' + when + '</div>'
+            + '<div class="muted">' + (l.acao || '') + ' • ' + campo + '</div>'
+            + '<div>' + (from ? ('<span class="muted">' + from + '</span> → ') : '') + '<b>' + to + '</b></div>'
+            + '</div>';
+        }).join('');
+      }
+
+      const canActions = CAN_EDIT;
+      btnAguard.disabled = !canActions;
+      btnProd.disabled = !canActions;
+      btnFinal.disabled = !canActions;
+      elHint.textContent = canActions ? 'Dica: Ctrl/Cmd + clique abre em nova aba.' : 'Você não tem permissão para alterar status/data.';
+    }
+
+    async function setStatus(opId, status) {
+      if (!CAN_EDIT) return;
+      const body = new URLSearchParams();
+      body.set('status', status);
+      const r = await fetch('/ops/' + encodeURIComponent(opId) + '/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: body.toString()
+      });
+      if (!r.ok) {
+        const t = await r.text();
+        throw new Error(t || ('HTTP ' + r.status));
+      }
+    }
+
+    btnAguard.addEventListener('click', async () => {
+      if (!currentOpId) return;
+      try {
+        await setStatus(currentOpId, 'AGUARDANDO_MATERIAL');
+        if (currentEvent) {
+          currentEvent.setExtendedProp('status', 'AGUARDANDO_MATERIAL');
+          currentEvent.setProp('classNames', buildClassNames(currentEvent));
+        }
+        await loadModal(currentOpId);
+        cal.refetchEvents();
+      } catch (e) { alert('Falha ao atualizar status: ' + (e.message || e)); }
+    });
+
+    btnProd.addEventListener('click', async () => {
+      if (!currentOpId) return;
+      try {
+        await setStatus(currentOpId, 'EM_PRODUCAO');
+        if (currentEvent) {
+          currentEvent.setExtendedProp('status', 'EM_PRODUCAO');
+          currentEvent.setProp('classNames', buildClassNames(currentEvent));
+        }
+        await loadModal(currentOpId);
+        cal.refetchEvents();
+      } catch (e) { alert('Falha ao atualizar status: ' + (e.message || e)); }
+    });
+
+    btnFinal.addEventListener('click', async () => {
+      if (!currentOpId) return;
+      if (!confirm('Finalizar esta OP?')) return;
+      try {
+        await setStatus(currentOpId, 'FINALIZADA');
+        if (currentEvent) {
+          currentEvent.setExtendedProp('status', 'FINALIZADA');
+          currentEvent.setProp('classNames', buildClassNames(currentEvent));
+        }
+        await loadModal(currentOpId);
+        cal.refetchEvents();
+      } catch (e) { alert('Falha ao finalizar: ' + (e.message || e)); }
+    });
+
+    function buildClassNames(event) {
+      const st = normalizeStatus(event.extendedProps?.status || 'ABERTA');
+      const classes = ['status-' + st];
+      if (isOverdue(event)) classes.push('op-overdue');
+      return classes;
+    }
+
+    const calendarEl = document.getElementById('opsCalendar');
+    const isMobile = () => window.matchMedia('(max-width: 640px)').matches;
+
+    const cal = new FullCalendar.Calendar(calendarEl, {
+      locale: 'pt-br',
+      initialView: isMobile() ? 'listDay' : 'listWeek',
+	      // Mantém compacto e previsível (o CSS define a altura do container)
+	      height: isMobile() ? 520 : 420,
+	      contentHeight: isMobile() ? 460 : 360,
+	      expandRows: false,
+      nowIndicator: true,
+      navLinks: true,
+      editable: CAN_EDIT,
+      eventStartEditable: CAN_EDIT,
+      eventDurationEditable: false,
+      dayMaxEvents: true,
+      headerToolbar: isMobile() ? {
+        left: 'prev,next',
+        center: 'title',
+        right: 'today listDay,listWeek,dayGridMonth'
+      } : {
+        left: 'prev,next today',
+        center: 'title',
+        right: 'listWeek,timeGridWeek,dayGridMonth'
+      },
+      views: {
+        timeGridWeek: { nowIndicator: true }
+      },
+      events: {
+        url: '/api/dashboard/ops-calendario',
+        method: 'GET'
+      },
+      eventClassNames: function(arg) {
+        return buildClassNames(arg.event);
+      },
+      eventDidMount: function(arg) {
+        arg.el.style.cursor = 'pointer';
+        arg.el.setAttribute('role', 'link');
+        arg.el.tabIndex = 0;
+        arg.el.addEventListener('keydown', function(e){
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            arg.el.click();
+          }
+        });
+      },
+      eventClick: async function(info) {
+        info.jsEvent.preventDefault();
+        const opId = info.event.id;
+        currentOpId = opId;
+        currentEvent = info.event;
+
+        // Ctrl/Cmd abre em nova aba
+        if (info.jsEvent.ctrlKey || info.jsEvent.metaKey) {
+          window.open('/ops/' + opId, '_blank');
+          return;
+        }
+
+        try {
+          await loadModal(opId);
+          openModal();
+        } catch (e) {
+          alert('Falha ao abrir resumo da OP: ' + (e.message || e));
+        }
+      },
+      eventDrop: async function(info) {
+        if (!CAN_EDIT) {
+          info.revert();
+          return;
+        }
+        try {
+          const d = info.event.start;
+          const y = d.getFullYear();
+          const m = String(d.getMonth()+1).padStart(2,'0');
+          const da = String(d.getDate()).padStart(2,'0');
+          const dateStr = y + '-' + m + '-' + da;
+
+          const body = new URLSearchParams();
+          body.set('data_entrega', dateStr);
+
+          const r = await fetch('/ops/' + encodeURIComponent(info.event.id) + '/data-entrega', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: body.toString()
+          });
+          const j = await r.json().catch(() => ({}));
+          if (!r.ok) {
+            info.revert();
+            alert('Falha ao atualizar a data da OP: ' + (j.error || ('HTTP ' + r.status)));
+            return;
+          }
+
+          // atualiza highlight de atraso
+          info.event.setProp('classNames', buildClassNames(info.event));
+          if (currentOpId === info.event.id) {
+            try { await loadModal(currentOpId); } catch(e) {}
+          }
+          cal.refetchEvents();
+        } catch (e) {
+          info.revert();
+          alert('Erro ao atualizar a data da OP: ' + (e.message || e));
+        }
+      }
+    });
+
+    cal.render();
+
+	    // Ajusta alturas quando alterna entre mobile/desktop
+	    function applySizing(isM){
+	      try {
+	        cal.setOption('height', isM ? 520 : 420);
+	        cal.setOption('contentHeight', isM ? 460 : 360);
+	      } catch(e) {}
+	    }
+	    applySizing(lastMobile);
+
+    // troca view quando muda o tamanho (mobile/desktop)
+    let lastMobile = isMobile();
+    window.addEventListener('resize', function(){
+      const nowM = isMobile();
+      if (nowM === lastMobile) return;
+      lastMobile = nowM;
+	      try { cal.changeView(nowM ? 'listDay' : 'listWeek'); } catch(e) {}
+	      applySizing(nowM);
+    });
+  })();
+</script>

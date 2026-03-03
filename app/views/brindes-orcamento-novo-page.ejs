@@ -1,0 +1,37 @@
+<div class="card">
+  <div class="card-head">
+    <div>
+      <div class="h1">Novo Orçamento de Brindes</div>
+      <div class="muted">Crie o cabeçalho e depois adicione os itens</div>
+    </div>
+  </div>
+
+  <form class="form" method="post" action="/brindes/orcamentos/novo">
+    <label class="field">
+      <span>Cliente (nome)</span>
+      <input class="input" name="cliente_nome" placeholder="Ex: Empresa XYZ" required>
+    </label>
+
+    <div class="grid grid-2">
+      <label class="field">
+        <span>Validade (dias)</span>
+        <input class="input" name="validade_em_dias" type="number" min="1" value="7">
+      </label>
+
+      <label class="field">
+        <span>Prazo de entrega (texto)</span>
+        <input class="input" name="prazo_entrega_texto" placeholder="Ex: 12 a 15 dias úteis">
+      </label>
+    </div>
+
+    <label class="field">
+      <span>Observações</span>
+      <textarea class="input" name="observacoes" rows="3"></textarea>
+    </label>
+
+    <div class="row gap">
+      <button class="btn" type="submit">Criar</button>
+      <a class="btn btn-ghost" href="/brindes/orcamentos">Voltar</a>
+    </div>
+  </form>
+</div>

@@ -1,0 +1,78 @@
+<%- include("layout", { title: "Estoque", body: `
+  <div class="kpis">
+    <div class="kpi">
+      <div class="kpi-label">Itens cadastrados</div>
+      <div class="kpi-value">${kpis.total_itens || 0}</div>
+    </div>
+    <div class="kpi kpi-warn">
+      <div class="kpi-label">Abaixo do mínimo</div>
+      <div class="kpi-value">${kpis.abaixo_minimo || 0}</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Chapas no total</div>
+      <div class="kpi-value">${kpis.total_chapas || 0}</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Mov. no mês</div>
+      <div class="kpi-value">${movMes.movs || 0}</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <div class="h1">Estoque de Chapas</div>
+        <div class="muted">Pesquise por descrição, cor ou código interno</div>
+      </div>
+
+      <form class="search" method="get" action="/estoque">
+        <input name="q" value="${q || ""}" placeholder="Buscar..." />
+        <button class="btn btn-secondary" type="submit">Buscar</button>
+        <a class="btn btn-ghost" href="/estoque">Limpar</a>
+      </form>
+    </div>
+
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Cód.</th>
+            <th>Descrição</th>
+            <th>Esp.</th>
+            <th>Cor</th>
+            <th>Dimensão</th>
+            <th>Local</th>
+            <th>Estoque</th>
+            <th>Mín.</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${produtos.length === 0 ? `
+            <tr><td colspan="10" class="td-empty">Nenhum item encontrado.</td></tr>
+          ` : produtos.map(p => `
+            <tr class="${p.baixo ? 'row-alert' : ''}">
+              <td class="mono">${p.codigo_interno ?? "-"}</td>
+              <td><b>${p.descricao}</b></td>
+              <td>${p.espessura_mm}mm</td>
+              <td>${p.cor}</td>
+              <td>${mmToM(p.largura_mm)} x ${mmToM(p.altura_mm)} m</td>
+              <td>${p.localizacao ?? "-"}</td>
+              <td><b>${p.estoque_atual}</b></td>
+              <td>${p.estoque_minimo}</td>
+              <td>
+                <span class="chip ${p.baixo ? "chip-danger" : "chip-ok"}">
+                  ${p.baixo ? "ABAIXO" : "OK"}
+                </span>
+              </td>
+              <td class="td-actions">
+                <a class="btn btn-small" href="/movimentar/${p.id}">Movimentar</a>
+              </td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+  </div>
+` }) %>

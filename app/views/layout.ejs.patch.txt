@@ -1,0 +1,3 @@
+
+<!-- ADICIONAR ESTA LINHA ABAIXO DO styles.css -->
+<link rel="stylesheet" href="/status-colors.css">

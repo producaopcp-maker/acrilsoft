@@ -1,0 +1,30 @@
+<div class="card">
+  <div class="h1">Cadastrar nova chapa</div>
+  <div class="muted">Use código interno para facilitar busca e relatórios</div>
+
+  <form class="form" method="post" action="/produtos">
+    <div class="grid">
+      <label>Código interno<input name="codigo_interno" placeholder="Ex: ACR-CRIS-03-2000x1000" /></label>
+      <label>Descrição<input name="descricao" placeholder="Ex: Chapa cristal 2x1" required /></label>
+      <label>Espessura (mm)<input name="espessura_mm" type="number" min="1" required /></label>
+      <label>Cor<input name="cor" placeholder="Ex: Cristal / Leitoso / Fumê" required /></label>
+      <label>Largura (mm)<input name="largura_mm" type="number" min="1" required /></label>
+      <label>Altura (mm)<input name="altura_mm" type="number" min="1" required /></label>
+      <label>Localização<input name="localizacao" placeholder="Ex: Prateleira A3" /></label>
+      <label>Marca (opcional)<input name="marca" placeholder="Ex: Cast / Extrudado / Marca X" /></label>
+      <label>Fornecedor (opcional)
+        <select name="fornecedor_id">
+          <option value="">— Selecionar —</option>
+          <% (fornecedores || []).forEach(f => { %><option value="<%= f.id %>"><%= f.nome %></option><% }) %>
+        </select>
+      </label>
+      <label>Estoque atual (chapas)<input name="estoque_atual" type="number" min="0" value="0" /></label>
+      <label>Estoque mínimo (chapas)<input name="estoque_minimo" type="number" min="0" value="0" /></label>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-primary" type="submit">Salvar</button>
+      <a class="btn btn-ghost" href="/estoque">Cancelar</a>
+    </div>
+  </form>
+</div>

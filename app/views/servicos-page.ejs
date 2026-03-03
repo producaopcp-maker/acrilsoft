@@ -1,0 +1,47 @@
+<div class="page-head">
+  <div>
+    <div class="h1">Serviços</div>
+    <div class="muted">Cadastre serviços como corte, impressão, polimento, instalação, etc.</div>
+  </div>
+  <div class="actions">
+    <a class="btn" href="/servicos/novo">+ Novo serviço</a>
+  </div>
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Categoria</th>
+          <th>Unidade</th>
+          <th>Preço (un)</th>
+          <th>Status</th>
+          <th style="width:220px;">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (!servicos || servicos.length === 0) { %>
+          <tr><td colspan="6" class="td-empty">Nenhum serviço cadastrado.</td></tr>
+        <% } else { %>
+          <% (servicos || []).forEach(s => { %>
+            <tr>
+              <td><b><%= s.nome %></b></td>
+              <td><%= s.categoria || "-" %></td>
+              <td><%= s.unidade || "un" %></td>
+              <td><%= Number(s.preco_unit || 0).toFixed(2) %></td>
+              <td><span class="badge"><%= Number(s.ativo||0) ? "ATIVO" : "INATIVO" %></span></td>
+              <td>
+                <a class="btn btn-ghost" href="/servicos/<%= s.id %>/editar">Editar</a>
+                <form method="post" action="/servicos/<%= s.id %>/excluir" style="display:inline;">
+                  <button class="btn btn-ghost" onclick="return confirm('Excluir serviço?')">Excluir</button>
+                </form>
+              </td>
+            </tr>
+          <% }) %>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+</div>

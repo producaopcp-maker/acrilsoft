@@ -1,0 +1,163 @@
+<%
+  const t = titulo || {};
+  const movs = Array.isArray(movimentos) ? movimentos : [];
+  const tipo = String(t.tipo||'').toUpperCase();
+  const backUrl = (tipo==='PAGAR') ? '/financeiro/pagar' : '/financeiro/receber';
+  function money(v){
+    v = Number(v||0) || 0;
+    return v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+  }
+  function statusChip(st){
+    st = String(st||'').toUpperCase();
+    if (st==='PAGO') return "chip chip-ok";
+    if (st==='CANCELADO') return "chip chip-danger";
+    if (st==='PARCIAL') return "chip chip-warn";
+    return "chip chip-warn";
+  }
+  const valorTotal = Number(t.valor||0)||0;
+  const valorPago = Number(t.valor_pago||0)||0;
+  const saldo = Math.max(0, valorTotal-valorPago);
+%>
+
+<div class="card">
+  <div class="card-head">
+    <div>
+      <div class="h1">Histórico do Título #<%= t.id %></div>
+      <div class="muted">Aqui você vê todas as baixas/estornos e pode estornar qualquer baixa original.</div>
+    </div>
+    <div class="card-actions">
+      <a class="btn btn-secondary" href="<%= backUrl %>">Voltar</a>
+      <a class="btn btn-secondary" href="/financeiro">Visão Geral</a>
+    </div>
+  </div>
+
+  <div style="display:flex; gap:14px; flex-wrap:wrap; margin-top:10px;">
+    <div class="card" style="padding:12px; min-width:280px; flex:1;">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+        <div>
+          <div style="font-weight:800; font-size:16px;"><%= (t.pessoa_nome || '-') %></div>
+          <div class="muted"><%= (t.descricao || '-') %></div>
+          <% if (t.origem==='PEDIDO' && t.origem_id) { %>
+            <div class="muted">Pedido #<%= t.origem_id %></div>
+          <% } %>
+          <% if (t.plano_nome) { %>
+            <div class="muted">Plano: <%= t.plano_nome %></div>
+          <% } %>
+        </div>
+        <div style="text-align:right;">
+          <div><span class="<%= statusChip(t.status) %>"><%= (t.status||'') %></span></div>
+          <div class="muted">Venc.: <%= (t.vencimento || '-') %></div>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:18px; flex-wrap:wrap; margin-top:10px;">
+        <div>
+          <div class="muted">Valor</div>
+          <div style="font-weight:900;"><%= money(valorTotal) %></div>
+        </div>
+        <div>
+          <div class="muted">Pago</div>
+          <div style="font-weight:900;"><%= money(valorPago) %></div>
+        </div>
+        <div>
+          <div class="muted">Saldo</div>
+          <div style="font-weight:900;"><%= money(saldo) %></div>
+        </div>
+      </div>
+
+      <div class="muted" style="margin-top:8px;">
+        Conta padrão: <%= (t.conta_nome || '-') %>
+      </div>
+    </div>
+
+    <% if (['ABERTO','PARCIAL'].includes(String(t.status||'').toUpperCase())) { %>
+      <div class="card" style="padding:12px; min-width:320px; flex:1;">
+        <div style="font-weight:800; margin-bottom:8px;">Dar baixa (parcial ou total)</div>
+        <form method="post" action="/financeiro/titulos/<%= t.id %>/baixar" style="display:flex; gap:8px; flex-wrap:wrap; align-items:end;">
+          <div style="min-width:160px;">
+            <label class="lbl">Conta</label>
+            <select class="inp" name="conta_id" required>
+              <% (contasList||[]).forEach(c => { %>
+                <option value="<%= c.id %>" <%= (String(t.conta_id||'')===String(c.id) ? 'selected' : '') %>><%= c.nome %></option>
+              <% }) %>
+            </select>
+          </div>
+          <div style="min-width:160px;">
+            <label class="lbl">Data</label>
+            <input class="inp" type="date" name="data_mov" value="<%= (new Date().toISOString().slice(0,10)) %>">
+          </div>
+          <div style="min-width:140px;">
+            <label class="lbl">Valor</label>
+            <input class="inp" name="valor_baixa" inputmode="decimal" placeholder="valor" value="<%= saldo.toFixed(2) %>">
+          </div>
+          <button class="btn" type="submit">Baixar</button>
+        </form>
+      </div>
+    <% } %>
+  </div>
+
+  <div class="table-wrap" style="margin-top:12px;">
+    <table class="table">
+      <thead>
+        <tr>
+          <th style="width:90px;">ID</th>
+          <th style="width:120px;">Data</th>
+          <th style="width:120px;">Tipo</th>
+          <th>Descrição</th>
+          <th style="width:140px;">Conta</th>
+          <th style="width:140px;">Valor</th>
+          <th style="width:160px;">Situação</th>
+          <th style="width:150px;">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (!movs.length) { %>
+          <tr><td colspan="8" class="muted">Nenhuma baixa/movimento ainda.</td></tr>
+        <% } %>
+
+        <% movs.forEach(m => {
+          const isEstorno = !!m.estorno_de_id;
+          const isEstornado = Number(m.estornado||0)===1;
+          const podeEstornar = (!isEstornado && !isEstorno);
+        %>
+          <tr>
+            <td><%= m.id %></td>
+            <td><%= (m.data_mov || '-') %></td>
+            <td>
+              <span class="chip <%= (String(m.tipo||'').toUpperCase()==='ENTRADA'?'chip-ok':'chip-danger') %>">
+                <%= (m.tipo || '-') %>
+              </span>
+            </td>
+            <td>
+              <div style="font-weight:700;"><%= (m.descricao || '-') %></div>
+              <% if (isEstorno) { %>
+                <div class="muted">Estorno de #<%= m.estorno_de_id %></div>
+              <% } %>
+            </td>
+            <td><%= (m.conta_nome || '-') %></td>
+            <td><%= money(m.valor) %></td>
+            <td>
+              <% if (isEstornado) { %>
+                <span class="chip chip-warn">ESTORNADO</span>
+              <% } else if (isEstorno) { %>
+                <span class="chip chip-secondary">ESTORNO</span>
+              <% } else { %>
+                <span class="chip chip-ok">BAIXA</span>
+              <% } %>
+            </td>
+            <td>
+              <% if (podeEstornar) { %>
+                <form method="post" action="/financeiro/movimentos/<%= m.id %>/estornar" onsubmit="return confirm('Estornar esta baixa (movimento #<%= m.id %>)?')" style="display:flex; gap:8px; flex-wrap:wrap;">
+                  <input class="inp" type="date" name="data_mov" value="<%= (new Date().toISOString().slice(0,10)) %>" style="max-width:160px;">
+                  <button class="btn btn-small btn-outline" type="submit">Estornar</button>
+                </form>
+              <% } else { %>
+                <span class="muted">—</span>
+              <% } %>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>

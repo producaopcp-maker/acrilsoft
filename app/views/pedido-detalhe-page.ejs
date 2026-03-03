@@ -1,0 +1,116 @@
+<%
+  const p = pedido || {};
+  const itensArr = Array.isArray(itens) ? itens : [];
+  function chipClass(st){
+    st = String(st||"").toUpperCase();
+    if (st === "CONVERTIDO") return "chip chip-ok";
+    if (st === "CANCELADO") return "chip chip-danger";
+    if (st === "EM_ANALISE") return "chip chip-info";
+    return "chip chip-warn";
+  }
+%>
+
+<div class="card">
+  <div class="card-head">
+    <div>
+      <div class="h1">Pedido #<%= p.id %></div>
+      <div class="muted">Pré-OP (comercial). Converta para OP quando estiver pronto.</div>
+    </div>
+    <div class="card-actions" style="display:flex; gap:10px; flex-wrap:wrap;">
+      <a class="btn btn-ghost" href="/pedidos">Voltar</a>
+      <a class="btn" href="/pedidos/<%= p.id %>/editar">Editar</a>
+
+      <% if ((p.status === 'ABERTO' || p.status === 'EM_ANALISE') && !p.op_id) { %>
+        <form method="post" action="/pedidos/<%= p.id %>/gerar-op" style="display:inline;">
+          <button class="btn btn-primary" type="submit">Gerar OP</button>
+        </form>
+      <% } %>
+
+      <% if (p.op_id) { %>
+        <a class="btn btn-primary" href="/ops/<%= p.op_id %>">Abrir OP</a>
+      <% } %>
+
+      <% if (p.status !== 'CANCELADO') { %>
+        <form method="post" action="/pedidos/<%= p.id %>/cancelar" style="display:inline;">
+          <button class="btn btn-danger" type="submit" onclick="return confirm('Cancelar este pedido?')">Cancelar</button>
+        </form>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="row" style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+    <div>
+      <div class="lbl">Cliente</div>
+      <div style="font-weight:800;"><%= p.cliente_nome || '-' %></div>
+      <div class="muted"><%= p.cliente_contato || '' %></div>
+    </div>
+    <div>
+      <div class="lbl">Status</div>
+      <div><span class="<%= chipClass(p.status) %>"><%= p.status || 'ABERTO' %></span></div>
+      <div class="muted" style="margin-top:4px;">Prioridade: <b><%= p.prioridade || 'NORMAL' %></b></div>
+      <div class="muted">Prazo: <b><%= p.prazo_entrega || '-' %></b></div>
+    </div>
+    <div>
+      <div class="lbl">Vendedor</div>
+      <div><%= p.vendedor_nome || '-' %></div>
+    </div>
+    <div>
+      <div class="lbl">Criado em</div>
+      <div><%= p.criado_em || '-' %></div>
+      <div class="muted">Atualizado em: <%= p.atualizado_em || '-' %></div>
+    </div>
+  </div>
+
+  <div style="margin-top:12px;">
+    <div class="lbl">Observações do vendedor</div>
+    <div class="card" style="padding:10px; background:rgba(255,255,255,0.02);"><%= p.observacoes_vendedor || '-' %></div>
+  </div>
+
+  <div style="margin-top:12px;">
+    <div class="lbl">Observações internas</div>
+    <div class="card" style="padding:10px; background:rgba(255,255,255,0.02);"><%= p.observacoes_internas || '-' %></div>
+  </div>
+
+  <div style="margin-top:12px;">
+    <div class="lbl">Anexo</div>
+    <% if (p.anexo_arquivo) { %>
+      <a class="btn btn-small" href="/uploads/<%= p.anexo_arquivo %>" target="_blank">Abrir anexo</a>
+      <span class="muted"><%= p.anexo_arquivo %></span>
+    <% } else { %>
+      <div class="muted">Sem anexo.</div>
+    <% } %>
+  </div>
+
+  <div style="margin-top:16px;">
+    <div class="h2">Itens</div>
+    <div class="table-wrap" style="margin-top:8px;">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Descrição</th>
+            <th style="width:120px;">Qtd</th>
+            <th style="width:120px;">Unidade</th>
+            <th>Obs</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (!itensArr.length) { %>
+            <tr><td colspan="4" class="muted">Nenhum item informado.</td></tr>
+          <% } %>
+          <% itensArr.forEach(it => { %>
+            <tr>
+              <td><%= it.descricao || '-' %></td>
+              <td><%= (it.quantidade ?? '-') %></td>
+              <td><%= it.unidade || '-' %></td>
+              <td><%= it.observacao || '' %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <% if (p.op_id) { %>
+    <div style="margin-top:14px;" class="muted">Este pedido já foi convertido na OP #<%= p.op_id %>.</div>
+  <% } %>
+</div>

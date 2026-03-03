@@ -1,0 +1,52 @@
+
+<div class="card">
+  <div class="h1">Movimentar insumo</div>
+  <div class="muted"><b><%= insumo.nome %></b> • <% const u = (insumo.unidade||'un').toLowerCase(); const suf = (u==='m') ? 'm' : (u==='ml') ? 'ml' : 'un'; const isFrac = (u==='m'||u==='ml'); %>
+  Estoque atual: <b><%= insumo.estoque_atual || 0 %></b> <%= suf %></div>
+
+  <form class="form" method="post" action="/insumos/<%= insumo.id %>/movimentar">
+    <div class="grid">
+      <label>Tipo
+        <select name="tipo" required>
+          <option value="entrada">Entrada</option>
+          <option value="saida">Saída</option>
+        </select>
+      </label>
+      <label>Quantidade<input name="quantidade" type="number" min="<%= isFrac ? 0.01 : 1 %>" step="<%= isFrac ? 0.01 : 1 %>" required /> <span class="muted"><%= suf %></span></label>
+      <label>Motivo (opcional)<input name="motivo" placeholder="Ex: Uso na OP #123, compra, ajuste..." /></label>
+    </div>
+    <div style="display:flex; gap:10px; margin-top:12px;">
+      <button class="btn" type="submit">Aplicar</button>
+      <a class="btn btn-ghost" href="/insumos">Voltar</a>
+    </div>
+  </form>
+</div>
+
+<div class="card" style="margin-top:12px;">
+  <div class="h1">Últimas movimentações</div>
+  <div class="table-wrap" style="margin-top:12px;">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Tipo</th>
+          <th>Quantidade</th>
+          <th>Motivo</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (!movs || movs.length === 0) { %>
+          <tr><td colspan="4" class="muted">Sem movimentações ainda.</td></tr>
+        <% } %>
+        <% (movs || []).forEach(m => { %>
+          <tr>
+            <td><%= m.created_at || '' %></td>
+            <td><%= m.tipo %></td>
+            <td><%= m.quantidade %></td>
+            <td><%= m.motivo || '-' %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>

@@ -1,0 +1,179 @@
+<%
+  const brl = (n) => new Intl.NumberFormat('pt-BR', { style:'currency', currency:'BRL' }).format(Number(n||0));
+  const dt = (s) => (s ? String(s).slice(0,10) : '');
+  const canalLabel = (c) => {
+    const s = String(c||'').toUpperCase();
+    if (s === 'MERCADOLIVRE') return 'Mercado Livre';
+    if (s === 'SHOPEE') return 'Shopee';
+    return 'Loja';
+  };
+  const canalBadge = (c) => {
+    const s = String(c||'').toLowerCase();
+    if (s.includes('ml') || s.includes('mercado')) return 'badge badge-ml';
+    if (s.includes('shopee')) return 'badge badge-shopee';
+    return 'badge badge-ok';
+  };
+  const statusBadge = (s) => {
+    const v = String(s||'PENDENTE').toUpperCase();
+    if (v === 'ENTREGUE') return 'badge badge-ok';
+    if (v === 'POSTADO' || v === 'EM_TRANSITO' || v === 'PRONTO') return 'badge badge-bling';
+    if (v === 'CANCELADO') return 'badge badge-warn';
+    return 'badge badge-warn';
+  };
+%>
+
+<div class="card" style="padding:18px;">
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+    <div>
+      <div class="h2" style="margin:0;">Expedição</div>
+      <div style="opacity:.8;margin-top:4px;">
+        Controle interno de expedição + rastreio + atualização no marketplace.
+      </div>
+    </div>
+
+    <form method="GET" action="/logistica/expedicao" style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;">
+      <label style="display:flex;flex-direction:column;gap:6px;">
+        <span style="font-size:12px;opacity:.75;">Período (dias)</span>
+        <input class="ds-input" type="number" name="dias" value="<%= dias %>" style="width:120px;">
+      </label>
+
+      <label style="display:flex;flex-direction:column;gap:6px;">
+        <span style="font-size:12px;opacity:.75;">Canal</span>
+        <select class="ds-select" name="canal" style="width:180px;">
+          <% canais.forEach(c => { %>
+            <option value="<%= c.key %>" <%= (String(canal||'')===String(c.key||''))?'selected':'' %>><%= c.label %></option>
+          <% }) %>
+        </select>
+      </label>
+
+      <label style="display:flex;flex-direction:column;gap:6px;">
+        <span style="font-size:12px;opacity:.75;">Status expedição</span>
+        <select class="ds-select" name="status" style="width:190px;">
+          <% statusList.forEach(s => { %>
+            <option value="<%= s.key %>" <%= (String(status||'')===String(s.key||''))?'selected':'' %>><%= s.label %></option>
+          <% }) %>
+        </select>
+      </label>
+
+      <button class="btn btn-primary" type="submit">Filtrar</button>
+    </form>
+  </div>
+
+  <% if (typeof ok !== 'undefined' && ok) { %>
+    <div class="alert alert-ok" style="margin-top:14px;"><%= ok %></div>
+  <% } %>
+  <% if (typeof err !== 'undefined' && err) { %>
+    <div class="alert alert-warn" style="margin-top:14px;"><%= err %></div>
+  <% } %>
+
+  <div style="margin-top:16px;overflow:auto;">
+    <table class="ds-table" style="min-width:1100px;">
+      <thead>
+        <tr>
+          <th>Pedido</th>
+          <th>Cliente</th>
+          <th>Canal</th>
+          <th>Status envio</th>
+          <th>Rastreio</th>
+          <th>Postagem</th>
+          <th>Entrega</th>
+          <th style="width:420px;">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (!rows || rows.length === 0) { %>
+          <tr><td colspan="8" style="opacity:.75;">Nenhum pedido no período.</td></tr>
+        <% } %>
+
+        <% rows.forEach(r => { %>
+          <tr>
+            <td>
+              <div style="display:flex;flex-direction:column;gap:2px;">
+                <a href="/pedidos/<%= r.pedido_id %>" style="font-weight:700;text-decoration:none;">#<%= r.pedido_id %></a>
+                <div style="font-size:12px;opacity:.7;"><%= dt(r.criado_em) %> • <%= brl(r.pedido_total) %></div>
+              </div>
+            </td>
+
+            <td style="max-width:280px;">
+              <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="<%= r.cliente %>"><%= r.cliente %></div>
+              <div style="font-size:12px;opacity:.7;">Pedido: <%= r.pedido_status %></div>
+            </td>
+
+            <td>
+              <span class="<%= canalBadge(r.canal) %>"><%= canalLabel(r.canal) %></span>
+              <% if (r.external_order_id) { %>
+                <div style="font-size:12px;opacity:.7;margin-top:4px;">ID: <%= r.external_order_id %></div>
+              <% } %>
+            </td>
+
+            <td>
+              <span class="<%= statusBadge(r.status_envio) %>"><%= r.status_envio %></span>
+            </td>
+
+            <td>
+              <% if (r.codigo_rastreio) { %>
+                <div style="font-weight:700;"><%= r.codigo_rastreio %></div>
+                <% if (r.url_rastreio) { %>
+                  <a href="<%= r.url_rastreio %>" target="_blank" style="font-size:12px;opacity:.8;">Abrir link</a>
+                <% } %>
+              <% } else { %>
+                <span style="opacity:.6;">—</span>
+              <% } %>
+            </td>
+
+            <td><%= r.data_postagem ? dt(r.data_postagem) : '—' %></td>
+            <td><%= r.data_entrega ? dt(r.data_entrega) : '—' %></td>
+
+            <td>
+              <form method="POST" action="/logistica/expedicao/<%= r.pedido_id %>/salvar" class="ds-form" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+                <label class="ds-field" style="min-width:140px;">
+                  <span>Status</span>
+                  <select class="ds-select" name="status_envio">
+                    <% ['PENDENTE','SEPARANDO','PRONTO','POSTADO','EM_TRANSITO','ENTREGUE','CANCELADO'].forEach(sv => { %>
+                      <option value="<%= sv %>" <%= (String(r.status_envio||'PENDENTE')===sv)?'selected':'' %>><%= sv %></option>
+                    <% }) %>
+                  </select>
+                </label>
+
+                <label class="ds-field" style="min-width:140px;">
+                  <span>Transportadora</span>
+                  <input class="ds-input" name="transportadora" value="<%= r.transportadora || '' %>" placeholder="Correios / Jadlog">
+                </label>
+
+                <label class="ds-field" style="min-width:160px;">
+                  <span>Código</span>
+                  <input class="ds-input" name="codigo_rastreio" value="<%= r.codigo_rastreio || '' %>" placeholder="BR123...">
+                </label>
+
+                <label class="ds-field" style="min-width:160px;">
+                  <span>URL</span>
+                  <input class="ds-input" name="url_rastreio" value="<%= r.url_rastreio || '' %>" placeholder="https://...">
+                </label>
+
+                <label class="ds-field" style="width:130px;">
+                  <span>Postagem</span>
+                  <input class="ds-input" type="date" name="data_postagem" value="<%= dt(r.data_postagem) %>">
+                </label>
+
+                <label class="ds-field" style="width:130px;">
+                  <span>Entrega</span>
+                  <input class="ds-input" type="date" name="data_entrega" value="<%= dt(r.data_entrega) %>">
+                </label>
+
+                <div style="display:flex;gap:8px;">
+                  <button class="btn btn-primary" type="submit">Salvar</button>
+
+                  <% if (String(r.canal||'').toUpperCase()==='MERCADOLIVRE' || String(r.canal||'').toUpperCase()==='SHOPEE') { %>
+                    <button class="btn btn-secondary" type="submit" formaction="/logistica/expedicao/<%= r.pedido_id %>/marketplace">
+                      Atualizar tracking
+                    </button>
+                  <% } %>
+                </div>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>

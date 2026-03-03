@@ -1,0 +1,372 @@
+<%
+  const p = pedido || {};
+  const itensArr = Array.isArray(itens) ? itens : [];
+  const clientesArr = Array.isArray(clientes) ? clientes : [];
+  const pagamentosArr = Array.isArray(pagamentos) ? pagamentos : [];
+
+  function chipClass(st){
+    st = String(st||"").toUpperCase();
+    if (st === "FATURADO" || st === "ENTREGUE") return "chip chip-ok";
+    if (st === "CANCELADO") return "chip chip-danger";
+    if (st === "APROVADO" || st === "EM_PRODUCAO" || st === "PRONTO") return "chip chip-info";
+    if (st === "ORCAMENTO") return "chip chip-warn";
+    return "chip chip-warn";
+  }
+
+  function money(v){
+    v = Number(v || 0) || 0;
+    return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
+  function fmt(v){
+    // número simples (ex: qtd, parcelas) sem lixo de float
+    if (v === null || v === undefined || v === '') return '-';
+    const n = Number(v);
+    if (!Number.isFinite(n)) return String(v);
+    // se for inteiro, mostra inteiro; senão 2 casas
+    if (Math.abs(n - Math.round(n)) < 1e-9) return String(Math.round(n));
+    return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function fmtDateBr(v){
+    if (!v) return '-';
+    const s = String(v);
+    // ISO yyyy-mm-dd -> dd/mm/yyyy
+    const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (m) return `${m[3]}/${m[2]}/${m[1]}`;
+    // já está em dd/mm/yyyy
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return s;
+    return s;
+  }
+%>
+
+<div class="card">
+  <%- include("components/pedido-header", { p, canModule }) %>
+
+  <% if (typeof opResumo !== "undefined" && opResumo) { %>
+    <div class="card card-sub" style="margin-top:12px;">
+      <div class="card-sub-head">
+        <div>
+          <div class="card-sub-title">OP vinculada</div>
+          <div class="muted">Acompanhe a produção e o custo desta OP.</div>
+        </div>
+        <a class="btn btn-small" href="/ops/<%= opResumo.id %>">Abrir OP <%= opResumo.codigo_op %></a>
+      </div>
+      <div class="kpis" style="margin-top:10px;">
+        <div class="kpi">
+          <div class="kpi-label">Status OP</div>
+          <div class="kpi-value"><%= opResumo.status || '-' %></div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Total serviços (OP)</div>
+          <div class="kpi-value"><%= money(opResumo.total_servicos || 0) %></div>
+        </div>
+        <div class="kpi kpi-total">
+          <div class="kpi-label">Custo total OP</div>
+          <div class="kpi-value"><%= money(opResumo.custo_total || 0) %></div>
+        </div>
+      </div>
+    </div>
+  <% } %>
+
+  <!-- Totais -->
+  <div style="margin-top:14px;">
+    <div class="section-head">
+      <div class="h2">Totais</div>
+    </div>
+    <div class="kpis pedido-kpis" style="margin-top:8px;">
+      <div class="kpi">
+        <div class="kpi-label">Subtotal</div>
+        <div class="kpi-value"><%= money(p.subtotal_itens ?? 0) %></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Desconto</div>
+        <div class="kpi-value" style="font-size:18px;">
+          <%= (p.desconto_tipo || 'VALOR') %>
+          <%= (String(p.desconto_tipo||'').toUpperCase() === 'PERCENTUAL') ? (fmt(p.desconto_valor) + '%') : money(p.desconto_valor ?? 0) %>
+        </div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Frete</div>
+        <div class="kpi-value"><%= money(p.frete_valor ?? 0) %></div>
+      </div>
+      <div class="kpi kpi-total">
+        <div class="kpi-label">Total</div>
+        <div class="kpi-value"><%= money(p.total ?? 0) %></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pagamentos -->
+  <div id="pagamentos" style="margin-top:16px;">
+    <div class="section-head">
+      <div class="h2">Pagamentos</div>
+      <div class="muted">Registre entradas previstas e controle do financeiro do pedido.</div>
+    </div>
+
+    <div class="card card-sub" style="margin-top:10px;">
+      <div class="card-sub-head">
+        <div>
+          <div class="card-sub-title">Adicionar pagamento</div>
+          <div class="muted">Use <b>dd/mm/aaaa</b> na data e <b>0,00</b> no valor.</div>
+        </div>
+      </div>
+
+      <form method="post" action="/pedidos/<%= p.id %>/pagamentos" style="margin-top:10px;">
+        <div class="pay-add-grid">
+          <div>
+            <label class="lbl">Forma</label>
+            <select class="inp" name="forma">
+              <option value="DINHEIRO">DINHEIRO</option>
+              <option value="PIX">PIX</option>
+              <option value="CARTAO_DEBITO">CARTAO_DEBITO</option>
+              <option value="CARTAO_CREDITO">CARTAO_CREDITO</option>
+              <option value="BOLETO">BOLETO</option>
+              <option value="TRANSFERENCIA">TRANSFERENCIA</option>
+              <option value="OUTROS">OUTROS</option>
+            </select>
+          </div>
+          <div>
+            <label class="lbl">Parcelas</label>
+            <input class="inp" name="parcelas" type="number" min="1" step="1" value="1">
+          </div>
+          <div>
+            <label class="lbl">Valor (R$)</label>
+            <input class="inp" name="valor" placeholder="0,00" inputmode="decimal" autocomplete="off" data-money>
+          </div>
+          <div>
+            <label class="lbl">Data prevista</label>
+            <input class="inp" name="data_prevista" placeholder="dd/mm/aaaa" inputmode="numeric" autocomplete="off" data-date-br>
+          </div>
+          <div class="pay-add-obs">
+            <label class="lbl">Obs</label>
+            <input class="inp" name="obs" placeholder="Ex: Entrada, sinal, restante, etc.">
+          </div>
+          <div class="pay-add-actions">
+            <button class="btn btn-primary" type="submit">+ Adicionar pagamento</button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div class="table-wrap" style="margin-top:10px;">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Forma</th>
+            <th style="width:110px;">Parcelas</th>
+            <th style="width:140px;">Valor</th>
+            <th style="width:160px;">Data</th>
+            <th>Obs</th>
+            <th style="width:90px;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (!pagamentosArr.length) { %>
+            <tr><td colspan="6" class="muted" style="padding:14px;">Nenhum pagamento lançado.</td></tr>
+          <% } %>
+          <% pagamentosArr.forEach(pg => { %>
+            <tr>
+              <td><%= pg.forma %></td>
+              <td><%= fmt(pg.parcelas || 1) %></td>
+              <td><%= money(pg.valor) %></td>
+              <td><%= fmtDateBr(pg.data_prevista) %></td>
+              <td><%= pg.obs || '' %></td>
+              <td>
+                <form method="post" action="/pedidos/<%= p.id %>/pagamentos/<%= pg.id %>/remover" style="display:inline;">
+                  <button class="btn btn-small btn-danger" type="submit" onclick="return confirm('Remover pagamento?')">X</button>
+                </form>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Dados -->
+  <div class="grid pedido-info-grid" style="margin-top:14px;">
+    <div class="card card-sub">
+      <div class="card-sub-head">
+        <div>
+          <div class="card-sub-title">Cliente</div>
+          <div class="muted">Dados para contato e vínculo</div>
+        </div>
+      </div>
+
+      <div class="cliente-hero">
+        <div style="font-weight:900; font-size:16px;">
+        <% if (p.cliente_id) { %>
+          <a href="/clientes/<%= p.cliente_id %>"><%= p.cliente_nome || ('Cliente #' + p.cliente_id) %></a>
+        <% } else { %>
+          <%= (p.cliente_nome_avulso || p.cliente_nome || 'CONSUMIDOR FINAL') %>
+        <% } %>
+      </div>
+        <div class="muted"><%= p.cliente_contato || p.cliente_telefone_avulso || '' %></div>
+      </div>
+
+      <form method="post" action="/pedidos/<%= p.id %>/vincular-cliente" style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap; align-items:end;">
+        <div style="min-width:260px; flex:1;">
+          <label class="lbl">Vincular/Alterar cliente</label>
+          <select class="inp" name="cliente_id">
+            <option value="">Avulso / Consumidor final</option>
+            <% clientesArr.forEach(c => { %>
+              <option value="<%= c.id %>" <%= (String(p.cliente_id||'')===String(c.id)?'selected':'') %>><%= c.nome_exibicao %><%= (c.doc ? (' - '+c.doc) : '') %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div>
+          <button class="btn btn-small" type="submit">Salvar</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card card-sub">
+      <div class="card-sub-head">
+        <div>
+          <div class="card-sub-title">Informações do pedido</div>
+          <div class="muted">Resumo operacional e integrações</div>
+        </div>
+      </div>
+
+      <div class="pedido-info-lines">
+        <div class="info-line"><span class="muted">Status</span><span><span class="<%= chipClass(p.status) %>"><%= p.status || 'ABERTO' %></span></span></div>
+        <div class="info-line"><span class="muted">Prioridade</span><span><b><%= p.prioridade || 'NORMAL' %></b></span></div>
+        <div class="info-line"><span class="muted">Prazo</span><span><b><%= p.prazo_entrega || '-' %></b></span></div>
+        <div class="info-line"><span class="muted">Data da venda</span><span><b><%= p.data_venda || '-' %></b></span></div>
+        <div class="info-line"><span class="muted">Pedido Bling</span><span><b><%= p.bling_numero || '-' %></b><% if (p.bling_pedido_compra) { %> • Compra: <b><%= p.bling_pedido_compra %></b><% } %></span></div>
+        <div class="info-line"><span class="muted">Vendedor</span><span><%= p.vendedor_nome || '-' %></span></div>
+        <div class="info-line"><span class="muted">Criado em</span><span><%= p.criado_em || '-' %></span></div>
+        <div class="info-line"><span class="muted">Atualizado em</span><span><%= p.atualizado_em || '-' %></span></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:12px;">
+    <div class="lbl">Observações do vendedor</div>
+    <div class="note-box"><%= p.observacoes_vendedor || '-' %></div>
+  </div>
+
+  <div style="margin-top:12px;">
+    <div class="lbl">Observações internas</div>
+    <div class="note-box"><%= p.observacoes_internas || '-' %></div>
+  </div>
+
+  <div style="margin-top:12px;">
+    <div class="lbl">Anexo</div>
+    <% if (p.anexo_arquivo) { %>
+      <a class="btn btn-small" href="/uploads/<%= p.anexo_arquivo %>" target="_blank">Abrir anexo</a>
+      <span class="muted"><%= p.anexo_arquivo %></span>
+    <% } else { %>
+      <div class="muted">Sem anexo.</div>
+    <% } %>
+  </div>
+
+  <div style="margin-top:16px;">
+    <div class="h2">Itens</div>
+    <div class="table-wrap" style="margin-top:8px;">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Descrição</th>
+            <th style="width:120px;">Qtd</th>
+            <th style="width:80px;">Un</th>
+            <th style="width:90px;">LxA</th>
+            <th style="width:110px;">Preço</th>
+            <th style="width:110px;">Desc</th>
+            <th style="width:110px;">Total</th>
+            <th>Obs</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (!itensArr.length) { %>
+            <tr><td colspan="8" class="muted">Nenhum item informado.</td></tr>
+          <% } %>
+          <% itensArr.forEach(it => { %>
+            <tr>
+              <td><%= it.descricao || '-' %></td>
+              <td><%= fmt(it.quantidade ?? '-') %></td>
+              <td><%= it.unidade || '-' %></td>
+              <td><%= (it.largura && it.altura) ? (it.largura + 'x' + it.altura + ' ' + (it.unidade_dim||'MM')) : '-' %></td>
+              <td><%= money(it.preco_unit ?? 0) %></td>
+              <td><%= money(it.desconto_item ?? 0) %></td>
+              <td><%= money(it.total_item ?? 0) %></td>
+              <td><%= it.observacao || '' %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <% if (p.op_id) { %>
+    <div style="margin-top:14px;" class="muted">Este pedido já foi convertido na OP #<%= p.op_id %>.</div>
+  <% } %>
+</div>
+
+<script>
+function parsePtMoneyToInput(v){
+  if(v === undefined || v === null) return '';
+  let s = String(v).trim();
+  if(!s) return '';
+  s = s.replace(/\s/g, '');
+  // mantém apenas números, vírgula, ponto e sinal
+  s = s.replace(/[^0-9,\.\-]/g, '');
+  // se tem vírgula, assume pt-BR: remove pontos (milhar) e troca vírgula por ponto
+  if (s.includes(',')) {
+    s = s.replace(/\./g, '').replace(',', '.');
+  }
+  const n = Number(s);
+  if(!Number.isFinite(n)) return '';
+  // exibe como pt-BR (sem R$) com 2 casas
+  return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// máscara simples para campos de dinheiro (pt-BR)
+document.querySelectorAll('input[data-money]').forEach((el) => {
+  el.addEventListener('blur', () => {
+    el.value = parsePtMoneyToInput(el.value);
+  });
+  el.addEventListener('focus', () => {
+    // no foco, deixa mais fácil editar (remove R$ e espaços)
+    el.value = String(el.value || '').replace(/[^0-9,\.\-]/g, '');
+  });
+});
+
+function maskDateBr(value){
+  const digits = String(value || '').replace(/\D/g, '').slice(0, 8);
+  const p1 = digits.slice(0,2);
+  const p2 = digits.slice(2,4);
+  const p3 = digits.slice(4,8);
+  let out = p1;
+  if (p2) out += '/' + p2;
+  if (p3) out += '/' + p3;
+  return out;
+}
+
+document.querySelectorAll('input[data-date-br]').forEach((el) => {
+  el.addEventListener('input', () => {
+    const start = el.selectionStart || 0;
+    el.value = maskDateBr(el.value);
+    // tenta manter cursor estável
+    el.setSelectionRange(start, start);
+  });
+  el.addEventListener('blur', () => {
+    el.value = maskDateBr(el.value);
+  });
+});
+
+async function ressincronizarBlingLocal(pedidoId){
+  if(!pedidoId) return;
+  if(!confirm("Re-sincronizar este pedido do Bling? Isso vai atualizar datas, vendedor, observações e itens.")) return;
+  try{
+    const res = await fetch("/integracoes/bling/ressincronizar-pedido-local/" + encodeURIComponent(String(pedidoId)), { method: "POST" });
+    const data = await res.json();
+    if(!data.ok) throw new Error(data.error || "Falha ao sincronizar");
+    alert("OK! Pedido sincronizado. (#" + data.pedido_id + ")");
+    window.location.reload();
+  }catch(e){
+    alert("Erro: " + (e.message || e));
+  }
+}
+</script>

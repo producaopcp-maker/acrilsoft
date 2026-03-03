@@ -1,0 +1,12 @@
+
+<!-- BLOCO DE LEGENDA DE STATUS (INSERIR ABAIXO DOS FILTROS) -->
+<div class="status-legend">
+  <div class="legend-title">Legenda:</div>
+  <div class="legend-items">
+    <span class="status-badge status-aberta">ABERTA</span>
+    <span class="status-badge status-em-producao">EM PRODUÇÃO</span>
+    <span class="status-badge status-finalizada">FINALIZADA</span>
+    <span class="status-badge status-cancelada">CANCELADA</span>
+    <span class="legend-late">ATRASADA</span>
+  </div>
+</div>

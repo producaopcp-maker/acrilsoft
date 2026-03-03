@@ -1,0 +1,61 @@
+<div class="card">
+  <div class="card-head">
+    <div>
+      <div class="h1">Novo SKU no Catálogo</div>
+      <div class="muted">Cadastre um item do fornecedor (XBZ/Ásia etc.)</div>
+    </div>
+  </div>
+
+  <form class="form" method="post" action="/brindes/catalogo/novo">
+    <div class="grid grid-2">
+      <label class="field">
+        <span>Fornecedor</span>
+        <select class="input" name="fornecedor_id" required>
+          <% (fornecedores || []).forEach((f) => { %>
+            <option value="<%= f.id %>"><%= f.nome %></option>
+          <% }) %>
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Código do fornecedor</span>
+        <input class="input" name="codigo_fornecedor" placeholder="Ex: XBZ-12345" required>
+      </label>
+    </div>
+
+    <label class="field">
+      <span>Nome</span>
+      <input class="input" name="nome" placeholder="Ex: Copo térmico 500ml" required>
+    </label>
+
+    <div class="grid grid-3">
+      <label class="field">
+        <span>Categoria</span>
+        <input class="input" name="categoria" placeholder="Ex: Copos">
+      </label>
+
+      <label class="field">
+        <span>Unidade</span>
+        <input class="input" name="unidade" value="UN">
+      </label>
+
+      <label class="field">
+        <span>Ativo</span>
+        <select class="input" name="ativo">
+          <option value="1" selected>Sim</option>
+          <option value="0">Não</option>
+        </select>
+      </label>
+    </div>
+
+    <label class="field">
+      <span>Descrição (opcional)</span>
+      <textarea class="input" name="descricao" rows="3" placeholder="Detalhes do produto..."></textarea>
+    </label>
+
+    <div class="row gap">
+      <button class="btn" type="submit">Salvar</button>
+      <a class="btn btn-ghost" href="/brindes/catalogo">Voltar</a>
+    </div>
+  </form>
+</div>

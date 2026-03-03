@@ -1,0 +1,13 @@
+
+<h1>Insumos</h1>
+<a href="/insumos/novo">Novo Insumo</a>
+<table border="1">
+<tr><th>Nome</th><th>Categoria</th><th>Estoque</th></tr>
+<% insumos.forEach(i=>{ %>
+<tr>
+<td><%= i.nome %></td>
+<td><%= i.categoria %></td>
+<td><%= i.estoque_atual %></td>
+</tr>
+<% }) %>
+</table>

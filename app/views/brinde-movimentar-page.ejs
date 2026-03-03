@@ -1,0 +1,36 @@
+
+<div class="card">
+  <div class="card-head">
+    <div>
+      <div class="h1">Movimentar Brinde</div>
+      <div class="muted"><b><%= brinde.nome %></b> — estoque atual: <b><%= brinde.estoque_atual || 0 %></b> <%= brinde.unidade || 'UN' %></div>
+    </div>
+  </div>
+
+  <% if (typeof erro !== 'undefined' && erro) { %>
+    <div class="alert alert-warn"><%= erro %></div>
+  <% } %>
+
+  <form method="post" action="/brindes/movimentar/<%= brinde.id %>" class="form">
+    <div class="grid-2">
+      <label>Tipo
+        <select name="tipo" class="input">
+          <option value="entrada">Entrada (+)</option>
+          <option value="saida">Saída (-)</option>
+          <option value="ajuste">Ajuste (define valor)</option>
+        </select>
+      </label>
+      <label>Quantidade
+        <input name="quantidade" class="input" type="number" required value="1"/>
+      </label>
+      <label style="grid-column:1/-1;">Observação (opcional)
+        <input name="observacao" class="input" placeholder="Ex: compra, brinde para evento..."/>
+      </label>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn" type="submit">Salvar</button>
+      <a class="btn btn-ghost" href="/estoque/brindes">Voltar</a>
+    </div>
+  </form>
+</div>

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Reset Admin • Acrilsoft</title>
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    body{min-height:100vh; display:flex; align-items:center; justify-content:center; background:var(--bg);}
+    .login-card{width:520px; max-width:92vw;}
+  </style>
+</head>
+<body>
+  <div class="card login-card">
+    <div class="login-logo" style="display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:14px;">
+      <div style="font-size:26px">🔐</div>
+      <div>
+        <div style="font-size:18px; font-weight:800">Reset do Admin</div>
+        <div class="muted" style="font-size:12px">Use apenas em emergência</div>
+      </div>
+    </div>
+
+    <% if (error) { %>
+      <div class="toast toast-err" style="margin-bottom:10px"><%= error %></div>
+    <% } %>
+    <% if (ok) { %>
+      <div class="toast toast-ok" style="margin-bottom:10px"><%= ok %></div>
+    <% } %>
+
+    <form method="POST" action="/reset-admin">
+      <div class="form-grid" style="grid-template-columns: 1fr; gap:10px">
+        <label class="field">
+          <span class="muted">Token (veja no terminal ao iniciar o servidor)</span>
+          <input name="token" required placeholder="Ex: a1b2c3d4"/>
+        </label>
+        <label class="field">
+          <span class="muted">Nova senha (opcional)</span>
+          <input name="novaSenha" placeholder="Se vazio, usa admin123"/>
+        </label>
+        <button class="btn btn-primary" type="submit">Resetar senha</button>
+      </div>
+    </form>
+
+    <div style="margin-top:12px; text-align:center">
+      <a class="muted" href="/login">Voltar para Login</a>
+    </div>
+  </div>
+</body>
+</html>

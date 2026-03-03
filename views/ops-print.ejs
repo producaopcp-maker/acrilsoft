@@ -1,0 +1,271 @@
+<% const __insumos = (typeof insumosUsados !== 'undefined' && insumosUsados) ? insumosUsados : []; %>
+<% const __servicos = (typeof servicosUsados !== 'undefined' && servicosUsados) ? servicosUsados : []; %>
+<% const __brindes = (typeof brindesUsados !== 'undefined' && brindesUsados) ? brindesUsados : []; %>
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Impressão OP <%= op.codigo_op %></title>
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    body{ background:#fff; }
+    /* A4 printing baseline */
+    @page{ size: A4; margin: 12mm; }
+
+    .print-shell{ max-width: 980px; margin: 22px auto; padding: 0 14px; }
+    .print-actions{ display:flex; gap:10px; margin-bottom:16px; }
+
+    /* Page containers */
+    .a4-page{ background:#fff; }
+    .page-break{ height: 18px; }
+
+    .attachments-grid{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .attachment-card{ border:1px solid #e5e7eb; border-radius:12px; padding:10px; }
+    .attachment-card img{ width:100%; height:220px; object-fit:contain; display:block; }
+
+    @media print{
+      .print-actions{ display:none !important; }
+
+      body{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .print-shell{ max-width: 190mm; margin: 0 auto; padding: 0; }
+
+      .page-break{ page-break-before: always; height: 0; }
+
+      /* Avoid splitting cards in the middle whenever possible */
+      .card{ break-inside: avoid; page-break-inside: avoid; }
+
+      /* Attachments: keep everything in page 2, grid */
+      .attachment-card{ break-inside: avoid; page-break-inside: avoid; }
+      .attachment-card img{ height: 85mm; }
+    }
+  </style>
+</head>
+<body>
+  <div class="print-shell">
+    <div class="print-actions">
+      <button class="btn btn-primary" onclick="window.print()">Imprimir</button>
+      <a class="btn btn-ghost" href="javascript:window.close()">Fechar</a>
+    </div>
+
+    <!-- ===== Página 1: Informações + Itens + Checklist + Insumos/Brindes/Serviços ===== -->
+    <div class="a4-page page-1">
+
+      <div class="card">
+        <div class="h1">Ordem de Produção</div>
+        <div class="muted">OP: <b class="mono"><%= op.codigo_op %></b> • Status: <b><%= (op.status || '').replace('_',' ') %></b></div>
+        <div style="margin-top:10px; display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+          <div><span class="muted">Cliente:</span> <b><%= op.cliente || "-" %></b></div>
+          <div><span class="muted">Produto final:</span> <b><%= op.produto_final || "-" %></b></div>
+          <div><span class="muted">Quantidade:</span> <b><%= op.quantidade_final || "-" %></b></div>
+          <div><span class="muted">Prioridade:</span> <b><%= op.prioridade %></b></div>
+          <div><span class="muted">Data de abertura:</span> <b class="mono"><%= op.data_abertura || "-" %></b></div>
+          <div><span class="muted">Data para entrega:</span> <b class="mono"><%= op.data_entrega || "-" %></b></div>
+          <div><span class="muted">Criado em:</span> <b class="mono"><%= op.criado_em %></b></div>
+        </div>
+        <% if (op.observacao_cliente) { %><div style="margin-top:10px;"><span class="muted">Obs. Cliente:</span> <b><%= op.observacao_cliente %></b></div><% } %>
+        <% if (op.observacao_interna || op.observacao) { %><div style="margin-top:6px;"><span class="muted">Obs. Interna:</span> <b><%= (op.observacao_interna || op.observacao) %></b></div><% } %>
+      </div>
+
+      <div class="card">
+        <div class="h1">Material / Peças</div>
+        <div style="margin-top:10px; display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+          <div><span class="muted">Espessura:</span> <b><%= op.material_espessura_mm ? (op.material_espessura_mm + 'mm') : '-' %></b></div>
+          <div><span class="muted">Cor:</span> <b><%= op.material_cor || '-' %></b></div>
+        </div>
+
+        <div style="margin-top:10px;">
+          <div class="muted" style="margin-bottom:6px;">Peças</div>
+          <% if (!pecas || pecas.length === 0) { %>
+            <div class="muted">Nenhuma peça informada.</div>
+          <% } else { %>
+            <table class="table">
+              <thead><tr><th>Peça</th><th>Medidas</th><th>Qtd</th></tr></thead>
+              <tbody>
+                <% (pecas || []).forEach(p => { %>
+                  <tr>
+                    <td><b><%= p.nome || 'Peça' %></b></td>
+                    <td><%= p.medidas || '-' %></td>
+                    <td><%= (p.quantidade || 1) %></td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          <% } %>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="h1">Itens</div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th>Produto</th><th>Cód.</th><th>Esp.</th><th>Cor</th><th>Qtd</th><th>Obs</th></tr></thead>
+            <tbody>
+              <% if (!itens || itens.length === 0) { %><tr><td colspan="6" class="td-empty">Nenhum item.</td></tr><% } %>
+              <% (itens || []).forEach(it => { %>
+                <tr>
+                  <td><b><%= it.descricao %></b></td>
+                  <td class="mono"><%= it.codigo_interno || "-" %></td>
+                  <td><%= it.espessura_mm %>mm</td>
+                  <td><%= it.cor %></td>
+                  <td><b><%= it.quantidade %></b></td>
+                  <td><%= it.observacao || "-" %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="h1">Checklist final de produção</div>
+        <div class="muted" style="margin-top:-6px;">(Conferência antes de finalizar / arquivar)</div>
+
+        <div style="margin-top:12px; display:grid; grid-template-columns: 1fr 1fr; gap:8px 16px;">
+          <% (checklistFinal || []).forEach(ch => { %>
+            <div style="display:flex; gap:10px; align-items:flex-start;">
+              <div class="mono" style="min-width:22px; font-size:16px; line-height:1;">
+                <%= ch.concluido ? "☑" : "☐" %>
+              </div>
+              <div>
+                <div><b><%= ch.item %></b></div>
+                <% if (ch.data_conclusao) { %>
+                  <div class="muted" style="font-size:12px;">Concluído em: <span class="mono"><%= ch.data_conclusao %></span></div>
+                <% } %>
+              </div>
+            </div>
+          <% }) %>
+          <% if (!checklistFinal || checklistFinal.length === 0) { %>
+            <div class="muted">Checklist não disponível.</div>
+          <% } %>
+        </div>
+
+        <div style="margin-top:14px; padding-top:12px; border-top:1px solid #e5e7eb;">
+          <% if (assinaturaChecklist && assinaturaChecklist.responsavel) { %>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+              <div><span class="muted">Responsável:</span> <b><%= assinaturaChecklist.responsavel %></b></div>
+              <div><span class="muted">Assinado em:</span> <b class="mono"><%= assinaturaChecklist.data_assinatura || '-' %></b></div>
+            </div>
+          <% } else { %>
+            <div class="muted">Responsável: ____________________________ &nbsp;&nbsp; Data: ____/____/______</div>
+          <% } %>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="h1">Insumos usados</div>
+        <% if ((__insumos || []).length === 0) { %>
+          <div class="muted">Nenhum insumo registrado nesta OP.</div>
+        <% } else { %>
+          <table class="table">
+            <thead><tr><th>Insumo</th><th>Consumo</th></tr></thead>
+            <tbody>
+              <% (__insumos || []).forEach(r => { 
+                   const u = String(r.unidade || 'un').trim().toLowerCase();
+                   const isMetro = (u === 'm' || u === 'metro' || u === 'metros' || u === 'mt' || u === 'mts');
+                   const porPeca = (r.qtd_por_peca != null) ? Number(r.qtd_por_peca) : null;
+                   const total = (r.qtd_total != null) ? Number(r.qtd_total) : Number(r.quantidade || 0);
+                 %>
+                <tr>
+                  <td><b><%= r.nome %></b> <span class="muted">(<%= r.unidade || 'un' %>)</span></td>
+                  <td>
+                    <% if (porPeca != null && porPeca > 0) { %>
+                      <span class="muted">por peça:</span> <b><%= porPeca %></b> <span class="muted"><%= isMetro ? 'cm' : (r.unidade || 'un') %></span>
+                      <span class="muted">| total:</span> <b><%= isMetro ? total.toFixed(2) : total %></b> <span class="muted"><%= r.unidade || 'un' %></span>
+                    <% } else { %>
+                      <b><%= isMetro ? total.toFixed(2) : total %></b> <span class="muted"><%= r.unidade || 'un' %></span>
+                    <% } %>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        <% } %>
+      </div>
+
+      <div class="card">
+        <div class="h1">Brindes</div>
+        <% if ((__brindes || []).length === 0) { %>
+          <div class="muted">Nenhum brinde nesta OP.</div>
+        <% } else { %>
+          <table class="table">
+            <thead><tr><th>Brinde</th><th>Qtd</th></tr></thead>
+            <tbody>
+              <% (__brindes || []).forEach(r => { %>
+                <tr>
+                  <td><b><%= r.nome %></b> <span class="muted">(<%= r.unidade || 'UN' %>)</span></td>
+                  <td><b><%= r.quantidade %></b></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        <% } %>
+      </div>
+
+      <div class="card">
+        <div class="h1">Serviços da OP</div>
+        <% if ((__servicos || []).length === 0) { %>
+          <div class="muted">Nenhum serviço registrado nesta OP.</div>
+        <% } else { %>
+          <table class="table">
+            <thead><tr><th>Serviço</th><th>Qtd</th><th>Preço</th><th>Total</th><th>Obs.</th></tr></thead>
+            <tbody>
+              <% (__servicos || []).forEach(r => { %>
+                <tr>
+                  <td><b><%= r.nome %></b> <span class="muted">(<%= r.unidade || 'un' %>)</span></td>
+                  <td><b><%= r.quantidade %></b></td>
+                  <td><%= Number(r.preco_unit||0).toFixed(2) %></td>
+                  <td><%= (Number(r.preco_unit||0) * Number(r.quantidade||0)).toFixed(2) %></td>
+                  <td><%= r.observacao || '' %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        <% } %>
+      </div>
+
+    </div>
+
+    <!-- ===== Página 2: Somente Layout / Imagens ===== -->
+    <div class="page-break"></div>
+
+    <div class="a4-page page-2">
+      <div class="card">
+        <div class="h1">Layout / Imagens anexadas</div>
+        <% if (!anexos || anexos.length === 0) { %>
+          <div class="muted">Sem anexos.</div>
+        <% } else { %>
+          <div class="attachments-grid">
+            <% (anexos || []).slice(0, 6).forEach(a => {
+              const storedRaw = (a && (a.filename || a.caminho || a.path)) ? String(a.filename || a.caminho || a.path) : "";
+              let stored = storedRaw.replace(/\\/g, "/");
+              if (stored.startsWith("uploads/")) stored = stored.slice("uploads/".length);
+              if (stored.startsWith("/uploads/")) stored = stored.slice("/uploads/".length);
+              const displayName = (a && (a.original_name || a.nome || a.filename || a.caminho || a.path)) ? String(a.original_name || a.nome || a.filename || a.caminho || a.path) : "arquivo";
+              const isImage = (a && a.mime) ? String(a.mime).toLowerCase().startsWith("image/") : true;
+            %>
+              <div class="attachment-card">
+                <div class="muted" style="margin-bottom:6px;"><%= displayName %></div>
+                <% if (!stored) { %>
+                  <div class="muted">Arquivo não disponível.</div>
+                <% } else if (!isImage) { %>
+                  <a class="btn btn-secondary" href="/uploads/<%= encodeURIComponent(stored) %>" target="_blank">Abrir anexo</a>
+                <% } else { %>
+                  <img src="/uploads/<%= encodeURIComponent(stored) %>" alt="<%= displayName %>" />
+                <% } %>
+              </div>
+            <% }) %>
+          </div>
+          <div class="muted" style="margin-top:10px;">(A impressão leva no máximo 6 imagens.)</div>
+        <% } %>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

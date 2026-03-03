@@ -1,0 +1,89 @@
+<div class="card">
+  <div class="h1">Cadastrar nova chapa</div>
+  <div class="muted">Use código interno para facilitar busca e relatórios</div>
+
+  <form class="form" method="post" action="/produtos">
+    <div class="grid">
+      <label>Código interno<input name="codigo_interno" placeholder="Ex: ACR-CRIS-03-2000x1000" /></label>
+      <label>Descrição<input name="descricao" placeholder="Ex: Chapa cristal 2x1" required /></label>
+      <label>Espessura (mm)<input name="espessura_mm" type="number" min="1" required /></label>
+      <label>Cor<input name="cor" placeholder="Ex: Cristal / Leitoso / Fumê" required /></label>
+      <label>Dimensão padrão
+        <select id="presetDim">
+          <option value="1000x2000" selected>1000 x 2000 mm (2,00 m²)</option>
+          <option value="1000x1000">1000 x 1000 mm (1,00 m²)</option>
+        </select>
+      </label>
+      <label>Largura (mm)
+        <input id="largura_mm" name="largura_mm" type="number" min="1" required />
+      </label>
+      <label>Altura (mm)
+        <input id="altura_mm" name="altura_mm" type="number" min="1" required />
+        <div class="muted" id="areaHint" style="margin-top:4px;">Área por chapa: 0.00 m²</div>
+      </label>
+      <label>Localização<input name="localizacao" placeholder="Ex: Prateleira A3" /></label>
+      <label>Marca (opcional)<input name="marca" placeholder="Ex: Cast / Extrudado / Marca X" /></label>
+      <label>Fornecedor (opcional)
+        <select name="fornecedor_id">
+          <option value="">— Selecionar —</option>
+          <% (fornecedores || []).forEach(f => { %><option value="<%= f.id %>"><%= f.nome %></option><% }) %>
+        </select>
+      </label>
+      <label>Estoque atual (chapas)
+        <input id="estoque_atual" name="estoque_atual" type="number" min="0" value="0" />
+        <div class="muted" id="estoqueAtualHint" style="margin-top:4px;">Equivale a 0.00 m²</div>
+      </label>
+      <label>Estoque mínimo (chapas)
+        <input id="estoque_minimo" name="estoque_minimo" type="number" min="0" value="0" />
+        <div class="muted" id="estoqueMinHint" style="margin-top:4px;">Equivale a 0.00 m²</div>
+      </label>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-primary" type="submit">Salvar</button>
+      <a class="btn btn-ghost" href="/estoque">Cancelar</a>
+    </div>
+  </form>
+</div>
+
+<script>
+  (function(){
+    const preset = document.getElementById('presetDim');
+    const w = document.getElementById('largura_mm');
+    const h = document.getElementById('altura_mm');
+    const areaHint = document.getElementById('areaHint');
+    const estAtual = document.getElementById('estoque_atual');
+    const estMin = document.getElementById('estoque_minimo');
+    const estAtualHint = document.getElementById('estoqueAtualHint');
+    const estMinHint = document.getElementById('estoqueMinHint');
+
+    function setPreset(){
+      const v = preset.value;
+      if (v === '1000x1000') { w.value = 1000; h.value = 1000; }
+      else { w.value = 1000; h.value = 2000; }
+      render();
+    }
+
+    function calcArea(){
+      const ww = Number(w.value||0);
+      const hh = Number(h.value||0);
+      return (ww*hh)/1000000;
+    }
+
+    function render(){
+      const area = calcArea();
+      areaHint.textContent = `Área por chapa: ${area.toFixed(2)} m²`;
+      estAtualHint.textContent = `Equivale a ${(Number(estAtual.value||0)*area).toFixed(2)} m²`;
+      estMinHint.textContent = `Equivale a ${(Number(estMin.value||0)*area).toFixed(2)} m²`;
+    }
+
+    preset.addEventListener('change', setPreset);
+    w.addEventListener('input', render);
+    h.addEventListener('input', render);
+    estAtual.addEventListener('input', render);
+    estMin.addEventListener('input', render);
+
+    // default
+    setPreset();
+  })();
+</script>

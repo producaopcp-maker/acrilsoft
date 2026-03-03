@@ -1,0 +1,410 @@
+<%
+  // Novo orçamento (Brindes) - mesmo layout do módulo Comercial (Produtos)
+  const o = orcamento || {};
+  const val = (x) => (x===null || x===undefined) ? '' : String(x);
+  const clientesList = Array.isArray(clientes) ? clientes : [];
+%>
+
+<style>
+  .proposal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+  .proposal-brand{display:flex;align-items:center;gap:10px;}
+  .proposal-brand .logo{width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg, rgba(99,102,241,.18), rgba(34,211,238,.18));display:flex;align-items:center;justify-content:center;font-weight:900;}
+  .proposal-brand .name{font-weight:900;font-size:18px;line-height:1.1;}
+  .proposal-brand .sub{color:var(--muted);font-size:12px;}
+  .proposal-title{font-size:22px;font-weight:900;letter-spacing:-.02em;}
+  .proposal-kpis{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;}
+  .proposal-kpis .k{min-width:160px;border:1px solid var(--border);background:var(--card);border-radius:14px;padding:10px 12px;}
+  .proposal-kpis .k .l{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.12em;}
+  .proposal-kpis .k .v{font-weight:900;font-size:16px;}
+  .proposal-kpis .k.primary{box-shadow:0 10px 24px rgba(0,0,0,.06);}
+
+  .section-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;}
+  .section-title .t{font-weight:900;font-size:15px;}
+  .section-title .s{color:var(--muted);font-size:12px;}
+  .hint{color:var(--muted);font-size:12px;margin-top:6px;}
+
+  .disabled-wrap{ position:relative; }
+  .disabled-wrap .disabled-overlay{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    background:rgba(255,255,255,.78); border-radius:14px; border:1px dashed var(--border);
+    padding:14px; text-align:center;
+    z-index:5;
+  }
+  .disabled-wrap .disabled-overlay .msg{ max-width:520px; }
+  .disabled-wrap .disabled-overlay .msg .t{ font-weight:900; margin-bottom:4px; }
+  .disabled-wrap .disabled-overlay .msg .s{ color:var(--muted); font-size:13px; }
+
+  .proposal-table thead th{font-size:12px;letter-spacing:.12em;text-transform:uppercase;}
+
+  /* Layout de formulário (proposta) */
+  .proposal-form .input, .proposal-form .select, .proposal-form textarea, .proposal-form select, .proposal-form input{ width:100%; box-sizing:border-box; }
+  .grid.grid-2{ grid-template-columns: repeat(2, minmax(260px, 1fr)); }
+  @media (max-width: 980px){
+    .grid.grid-2{ grid-template-columns: 1fr; }
+  }
+
+  .disabled-wrap.items-block{ min-height: 220px; }
+  .disabled-wrap.items-block .disabled-overlay{ align-items:flex-start; padding-top:78px; }
+</style>
+
+<div class="page orc-brindes">
+  <div class="card" style="margin-top:10px;">
+    <div class="card-body">
+      <div class="proposal-head">
+        <div>
+          <div class="proposal-brand">
+            <div class="logo">A</div>
+            <div>
+              <div class="name">Acrilsoft</div>
+              <div class="sub">Proposta Comercial • Orçamento de Brindes</div>
+            </div>
+          </div>
+          <div style="margin-top:10px;" class="proposal-title">Novo Orçamento</div>
+          <div class="hint">Preencha os dados da proposta. Depois de criar, você adiciona os itens (estoque de brindes) e personalizações e o sistema calcula os totais automaticamente.</div>
+
+          <div class="proposal-kpis">
+            <div class="k"><div class="l">Status</div><div class="v">RASCUNHO</div></div>
+            <div class="k"><div class="l">Itens</div><div class="v">0</div></div>
+            <div class="k primary"><div class="l">Total</div><div class="v"><%= typeof formatCurrency==='function' ? formatCurrency(0) : 'R$ 0,00' %></div></div>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:10px; align-items:center;">
+          <button form="form-orc-br" class="btn btn-primary" type="submit">Criar e continuar</button>
+          <a class="btn btn-secondary" href="/brindes/orcamentos">Voltar</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <form id="form-orc-br" class="proposal-form" method="POST" action="/brindes/orcamentos/novo" enctype="multipart/form-data">
+    <div class="grid" style="grid-template-columns: 1.6fr 1fr; gap: 12px; margin-top:12px; align-items:start;">
+      <div>
+        <div class="card client-section">
+          <div class="card-body">
+            <div class="section-title">
+              <div>
+                <div class="t">Dados do cliente</div>
+                <div class="s">Informações exibidas na proposta/PDF.</div>
+              </div>
+            </div>
+
+            <div class="grid grid-2">
+              <div>
+                <label>Cliente cadastrado</label>
+                <select name="cliente_id" class="input" id="brClienteId">
+                  <option value="">— Selecionar —</option>
+                  <% clientesList.forEach((c) => { %>
+                    <option value="<%= c.id %>" data-nome="<%= (c.nome_exibicao || c.nome || ('Cliente #' + c.id)) %>" data-contato="<%= (c.contato || '') %>" data-doc="<%= (c.doc || '') %>" data-email="<%= (c.email || '') %>" data-cep="<%= (c.cep || '') %>" data-logradouro="<%= (c.logradouro || '') %>" data-numero="<%= (c.numero || '') %>" data-complemento="<%= (c.complemento || '') %>" data-bairro="<%= (c.bairro || '') %>" data-cidade="<%= (c.cidade || '') %>" data-uf="<%= (c.uf || '') %>"><%= (c.nome_exibicao || c.nome || ('Cliente #' + c.id)) %></option>
+                  <% }) %>
+                </select>
+                <div class="hint">Se não selecionar, preencha os campos do cliente avulso abaixo.</div>
+              </div>
+
+              <div>
+                <label>Status</label>
+                <select name="status" class="input">
+                  <option value="RASCUNHO">Rascunho</option>
+                  <option value="ENVIADO">Enviado</option>
+                  <option value="APROVADO">Aprovado</option>
+                  <option value="REPROVADO">Reprovado</option>
+                </select>
+              </div>
+
+              <div>
+                <label>Nome do cliente (avulso)</label>
+                <input name="cliente_nome_avulso" id="brClienteNome" class="input" placeholder="Ex: Amora Maker" />
+              </div>
+
+              <div>
+                <label>WhatsApp</label>
+                <input name="cliente_whatsapp" id="brClienteWhatsapp" class="input" placeholder="Ex: 11999999999" />
+              </div>
+
+              <div>
+                <label>E-mail</label>
+                <input name="cliente_email" id="brClienteEmail" class="input" placeholder="cliente@email.com" />
+              </div>
+
+              <div>
+                <label>CPF/CNPJ</label>
+                <input name="cliente_documento" id="brClienteDocumento" class="input" placeholder="Somente números" />
+              </div>
+
+              <div>
+                <label>Endereço</label>
+                <input name="cliente_endereco" id="brClienteEndereco" class="input" placeholder="Rua, número, bairro" />
+              </div>
+
+              <div class="grid" style="grid-template-columns: 1fr 110px; gap:10px;">
+                <div>
+                  <label>Cidade</label>
+                  <input name="cliente_cidade" id="brClienteCidade" class="input" placeholder="Cidade" />
+                </div>
+                <div>
+                  <label>UF</label>
+                  <input name="cliente_uf" id="brClienteUf" class="input" placeholder="SP" />
+                </div>
+              </div>
+
+              <div>
+                <label>Vendedor</label>
+                <input name="vendedor_nome" class="input" placeholder="Nome do vendedor" />
+              </div>
+
+              <div>
+                <label>Canal</label>
+                <input name="canal_venda" class="input" placeholder="Loja / WhatsApp / ML / Shopee..." />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        </div>
+
+        <div class="card" style="margin-top:12px;">
+          <div class="card-body">
+            <div class="section-title">
+              <div>
+                <div class="t">Condições comerciais</div>
+                <div class="s">Validade, prazo, pagamento, garantia.</div>
+              </div>
+            </div>
+
+            <div class="grid grid-2">
+              <div>
+                <label>Validade (dias)</label>
+                <input class="input" type="number" min="1" step="1" name="validade_em_dias" value="<%= val(o.validade_em_dias || 7) %>">
+                <div class="hint">Ex: 7</div>
+              </div>
+              <div>
+                <label>Prazo base (dias úteis)</label>
+                <input class="input" type="number" min="0" step="1" name="prazo_base_dias" value="<%= val(o.prazo_base_dias || 10) %>">
+                <div class="hint">Ex: 10</div>
+              </div>
+
+              <div style="grid-column: 1 / -1;">
+                <label>Prazo (texto opcional)</label>
+                <input class="input" name="prazo_entrega_texto" value="<%= val(o.prazo_entrega_texto) %>" placeholder="Ex.: 10 a 12 dias úteis após aprovação">
+              </div>
+
+              <div>
+                <label>Pagamento</label>
+                <input class="input" name="pagamento_texto" value="<%= val(o.pagamento_texto) %>" placeholder="Ex.: 50% entrada + 50% na entrega">
+              </div>
+              <div>
+                <label>Garantia</label>
+                <input class="input" name="garantia_texto" value="<%= val(o.garantia_texto) %>" placeholder="Ex.: 90 dias contra defeitos de fabricação">
+              </div>
+
+              <div>
+                <label>Frete (texto)</label>
+                <input class="input" name="frete_texto" value="<%= val(o.frete_texto) %>" placeholder="Ex.: CIF / FOB / Retira">
+              </div>
+              <div>
+                <label>Frete (R$)</label>
+                <input class="input" type="number" step="0.01" min="0" name="frete_valor" value="<%= val(o.frete_valor || 0) %>">
+              </div>
+
+              <div>
+                <label>Desconto (R$)</label>
+                <input class="input" type="number" step="0.01" min="0" name="desconto" value="<%= val(o.desconto || 0) %>">
+              </div>
+              <div>
+                <label>Impostos / Observações fiscais</label>
+                <input class="input" name="impostos_texto" value="<%= val(o.impostos_texto) %>" placeholder="Ex.: Valores sem ICMS/ST, etc.">
+              </div>
+
+              <div style="grid-column: 1 / -1;">
+                <label>Observações</label>
+                <textarea class="input" name="observacoes" rows="3" placeholder="Detalhes, condições, o que está incluso..."><%= val(o.observacoes) %></textarea>
+              </div>
+
+              <div style="grid-column: 1 / -1;">
+                <label>Condições comerciais (extra)</label>
+                <textarea class="input" name="condicoes_comerciais" rows="3" placeholder="Ex.: aprovação de layout, prazos, garantia..."><%= val(o.condicoes_comerciais) %></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:12px;">
+          <div class="card-body disabled-wrap">
+            <div class="section-title">
+              <div>
+                <div class="t">Layout / Arte (anexo)</div>
+                <div class="s">PDF ou imagem do layout da proposta.</div>
+              </div>
+            </div>
+            <div class="disabled-overlay">
+              <div class="msg">
+                <div class="t">Crie o orçamento para anexar layout</div>
+                <div class="s">Depois de criar, você pode anexar PDF/imagem do layout diretamente na proposta.</div>
+              </div>
+            </div>
+            <div class="hint">Disponível após criar o orçamento.</div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:12px;">
+          <div class="card-body disabled-wrap items-block">
+            <div class="section-title">
+              <div>
+                <div class="t">Itens da proposta</div>
+                <div class="s">Itens do estoque + personalizações.</div>
+              </div>
+            </div>
+            <div class="disabled-overlay">
+              <div class="msg">
+                <div class="t">Crie o orçamento para adicionar itens</div>
+                <div class="s">Clique em “Criar e continuar”. Você será levado para a tela completa com seleção de brindes, personalizações e totais automáticos.</div>
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="table proposal-table">
+                <thead>
+                  <tr>
+                    <th style="width:100px;">Tipo</th>
+                    <th>Descrição</th>
+                    <th style="width:90px;">Qtd</th>
+                    <th style="width:90px;">UN</th>
+                    <th style="width:120px;" class="text-end">V. Unit</th>
+                    <th style="width:110px;" class="text-end">Desc</th>
+                    <th style="width:140px;" class="text-end">Total</th>
+                    <th style="width:120px;" class="text-end">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td colspan="8" class="muted">Crie o orçamento para liberar a inclusão de itens.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div>
+        <div class="card sticky-panel">
+          <div class="card-body">
+            <div class="section-title">
+              <div>
+                <div class="t">Resumo financeiro</div>
+                <div class="s">Totais calculados pelos itens.</div>
+              </div>
+            </div>
+
+            <div class="kpi">
+              <div class="muted">Subtotal</div>
+              <b><%= typeof formatCurrency==='function' ? formatCurrency(0) : 'R$ 0,00' %></b>
+            </div>
+            <div class="kpi">
+              <div class="muted">Desconto</div>
+              <b><%= typeof formatCurrency==='function' ? formatCurrency(0) : 'R$ 0,00' %></b>
+            </div>
+            <div class="kpi">
+              <div class="muted">Frete</div>
+              <b><%= typeof formatCurrency==='function' ? formatCurrency(0) : 'R$ 0,00' %></b>
+            </div>
+            <div class="kpi">
+              <div class="muted">Total</div>
+              <b><%= typeof formatCurrency==='function' ? formatCurrency(0) : 'R$ 0,00' %></b>
+            </div>
+
+            <div class="hint" style="margin-top:10px;">Depois de criar, você poderá adicionar itens e enviar PDF/WhatsApp.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const sel = document.getElementById('brClienteId');
+  if (!sel) return;
+
+  const nome = document.getElementById('brClienteNome');
+  const whats = document.getElementById('brClienteWhatsapp');
+
+  // Se algum dia você adicionar mais campos no Brindes, isso já suporta:
+  const email = document.getElementById('brClienteEmail') || document.querySelector('[name="cliente_email"]');
+  const doc = document.getElementById('brClienteDocumento') || document.querySelector('[name="cliente_documento"]');
+  const end = document.getElementById('brClienteEndereco') || document.querySelector('[name="cliente_endereco"]');
+  const cidade = document.getElementById('brClienteCidade') || document.querySelector('[name="cliente_cidade"]');
+  const uf = document.getElementById('brClienteUf') || document.querySelector('[name="cliente_uf"]');
+
+  function montarEndereco(d){
+    const parts = [];
+    if (d.logradouro) parts.push(d.logradouro);
+    let numComp = '';
+    if (d.numero) numComp += d.numero;
+    if (d.complemento) numComp += (numComp ? ' ' : '') + d.complemento;
+    if (numComp) parts.push(numComp);
+    if (d.bairro) parts.push(d.bairro);
+    return parts.join(', ');
+  }
+
+  async function preencher(clienteId){
+    if (!clienteId) return;
+
+    // Preenche rápido via dataset do option
+    const opt = sel.options[sel.selectedIndex];
+    if (opt){
+      const n = opt.getAttribute('data-nome') || '';
+      const c = opt.getAttribute('data-contato') || '';
+      const em = opt.getAttribute('data-email') || '';
+      const dc = opt.getAttribute('data-doc') || '';
+      const log = opt.getAttribute('data-logradouro') || '';
+      const num = opt.getAttribute('data-numero') || '';
+      const comp = opt.getAttribute('data-complemento') || '';
+      const bai = opt.getAttribute('data-bairro') || '';
+      const cid = opt.getAttribute('data-cidade') || '';
+      const u = opt.getAttribute('data-uf') || '';
+
+      if (nome) nome.value = n;
+      if (whats) whats.value = c;
+      if (email && em) email.value = em;
+      if (doc && dc) doc.value = dc;
+
+      const enderecoTxt = [log, num, comp, bai].filter(Boolean).join(', ');
+      if (end && enderecoTxt) end.value = enderecoTxt;
+      if (cidade && cid) cidade.value = cid;
+      if (uf && u) uf.value = u;
+    }
+
+    // Completa com dados completos (nome, whatsapp, doc, email, endereço principal)
+    try {
+      const r = await fetch(`/api/clientes/${clienteId}`);
+      if (!r.ok) return;
+      const d = await r.json();
+
+      if (nome) nome.value = d.nome || nome.value || '';
+      if (whats) whats.value = d.whatsapp || whats.value || '';
+      if (email) email.value = d.email || email.value || '';
+      if (doc) doc.value = d.documento || doc.value || '';
+
+      const enderecoTxt = montarEndereco(d);
+      if (end) end.value = enderecoTxt || end.value || '';
+      if (cidade) cidade.value = d.cidade || cidade.value || '';
+      if (uf) uf.value = d.uf || uf.value || '';
+    } catch(e){}
+  }
+
+  sel.addEventListener('change', () => preencher(sel.value));
+
+  // se abrir já com um cliente selecionado e os campos estiverem vazios, tenta preencher
+  if (sel.value && (
+    (nome && !nome.value) ||
+    (whats && !whats.value) ||
+    (email && !email.value) ||
+    (doc && !doc.value) ||
+    (end && !end.value) ||
+    (cidade && !cidade.value) ||
+    (uf && !uf.value)
+  )){
+    preencher(sel.value);
+  }
+});
+</script>

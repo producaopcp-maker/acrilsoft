@@ -1,0 +1,36 @@
+/* Print layout for OP */
+body{ background:#fff; }
+.print-page{ max-width: 210mm; margin: 0 auto; padding: 12mm; }
+.print-actions{ display:flex; gap:10px; margin: 14px 0; }
+.print-header{ display:flex; align-items:center; justify-content:space-between; gap:16px; border-bottom:1px solid #e5e7eb; padding-bottom:10px; margin-bottom:12px; }
+.print-brand{ display:flex; align-items:center; gap:12px; min-width: 0; }
+.print-logo{ height: 44px; width:auto; object-fit:contain; }
+.print-title{ font-size: 18px; font-weight: 800; line-height:1.1; }
+.print-sub{ font-size: 12px; opacity:.8; margin-top:2px; }
+.print-meta{ text-align:right; font-size:12px; }
+.print-meta b{ font-weight:800; }
+.print-section{ border:1px solid #e5e7eb; border-radius:14px; padding:12px; margin-top:12px; }
+.print-section h2{ margin:0 0 8px 0; font-size:15px; }
+.print-grid{ display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; }
+.print-field{ border:1px solid #eef2f7; border-radius:12px; padding:10px; }
+.print-field .label{ font-size:11px; opacity:.7; }
+.print-field .value{ margin-top:3px; font-size:13px; font-weight:700; word-break:break-word; }
+.print-notes{ font-size:12px; }
+.print-table{ width:100%; border-collapse:collapse; }
+.print-table th, .print-table td{ border-bottom:1px solid #eef2f7; padding:8px; font-size:12px; vertical-align:top; }
+.print-table th{ font-weight:800; font-size:12px; }
+.td-empty{ text-align:center; color:#666; padding:14px; }
+.print-checklist{ display:grid; grid-template-columns: 1fr 1fr; gap:8px 18px; }
+.print-checkitem{ display:flex; gap:10px; align-items:flex-start; }
+.print-checkbox{ min-width:22px; font-size:16px; line-height:1; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+.print-images{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+.print-images img{ width:100%; border:1px solid #e5e7eb; border-radius:12px; }
+.mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+
+@media print{
+  @page{ size: A4; margin: 10mm; }
+  .no-print{ display:none !important; }
+  .print-page{ padding: 0; }
+  .print-section{ page-break-inside: avoid; }
+  a{ color:inherit; text-decoration:none; }
+}

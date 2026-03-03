@@ -1,0 +1,151 @@
+<%
+  const pedidosArr = Array.isArray(pedidos) ? pedidos : [];
+  const f = filtros || {};
+  function badge(s){
+    s = String(s||"").toUpperCase();
+    if (s.includes("APROV")) return "chip chip-ok";
+    if (s.includes("FATUR")) return "chip chip-ok";
+    if (s.includes("CANCEL")) return "chip chip-danger";
+    if (s.includes("ATEND")) return "chip chip-info";
+    if (s.includes("ABER")) return "chip chip-warn";
+    return "chip chip-muted";
+  }
+  function fmt(d){
+    if(!d) return "";
+    return String(d).slice(0,10);
+  }
+%>
+
+<div class="card">
+  <div class="card-head">
+    <div>
+      <div class="h1">Pedidos do Bling</div>
+      <div class="muted">Liste, filtre e importe pedidos direto do Bling (sem colar ID).</div>
+    </div>
+    <div class="card-actions">
+      <a class="btn btn-outline" href="/config/bling">Config Bling</a>
+      <button id="btnSyncBling" class="btn btn-outline" type="button" onclick="syncNow()">Sincronizar agora</button>
+    </div>
+  </div>
+
+  <form class="filters" method="get" action="/bling/pedidos" style="margin-top:10px;">
+    <div class="row" style="display:flex; gap:10px; flex-wrap:wrap;">
+      <div style="min-width:180px;">
+        <label class="lbl">Situação</label>
+        <select name="situacao" class="inp">
+          <option value="" <%= !f.situacao ? "selected":"" %>>Todas</option>
+          <option value="Em aberto" <%= f.situacao==="Em aberto" ? "selected":"" %>>Em aberto</option>
+          <option value="Aprovado" <%= f.situacao==="Aprovado" ? "selected":"" %>>Aprovado</option>
+          <option value="Atendido" <%= f.situacao==="Atendido" ? "selected":"" %>>Atendido</option>
+          <option value="Faturado" <%= f.situacao==="Faturado" ? "selected":"" %>>Faturado</option>
+          <option value="Cancelado" <%= f.situacao==="Cancelado" ? "selected":"" %>>Cancelado</option>
+        </select>
+      </div>
+
+      <div style="min-width:160px;">
+        <label class="lbl">Data inicial</label>
+        <input type="date" class="inp" name="dataInicial" value="<%= f.dataInicial || "" %>">
+      </div>
+      <div style="min-width:160px;">
+        <label class="lbl">Data final</label>
+        <input type="date" class="inp" name="dataFinal" value="<%= f.dataFinal || "" %>">
+      </div>
+
+      <div style="min-width:140px;">
+        <label class="lbl">Página</label>
+        <input type="number" class="inp" name="pagina" min="1" value="<%= f.pagina || 1 %>">
+      </div>
+
+      <div style="min-width:140px;">
+        <label class="lbl">Limite</label>
+        <input type="number" class="inp" name="limite" min="10" max="200" value="<%= f.limite || 50 %>">
+      </div>
+
+      <div style="align-self:flex-end;">
+        <button class="btn btn-primary" type="submit">Filtrar</button>
+      </div>
+    </div>
+  </form>
+
+  <div class="table-wrap" style="margin-top:14px;">
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th style="width:90px;">ID</th>
+          <th style="width:120px;">Número</th>
+          <th style="width:110px;">Data</th>
+          <th>Situação</th>
+          <th>Cliente</th>
+          <th style="width:90px;">Itens</th>
+          <th style="width:140px;">Importação</th>
+          <th style="width:120px;"></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (!pedidosArr.length) { %>
+          <tr><td colspan="8" class="muted" style="padding:14px;">Nenhum pedido encontrado com os filtros atuais.</td></tr>
+        <% } %>
+
+        <% pedidosArr.forEach(p => { %>
+          <tr>
+            <td><code><%= p.id %></code></td>
+            <td><%= p.numero || "" %></td>
+            <td><%= fmt(p.data) %></td>
+            <td><span class="<%= badge(p.situacao) %>"><%= p.situacao || "-" %></span></td>
+            <td>
+              <div style="font-weight:600;"><%= p.cliente?.nome || "-" %></div>
+              <div class="muted" style="font-size:12px;">Cód: <%= p.cliente?.codigo || "-" %> • <%= p.cliente?.cnpjcpf || "-" %></div>
+            </td>
+            <td style="text-align:right;"><%= (p.itens||[]).length %></td>
+            <td>
+              <% if (p.ja_importado) { %>
+                <span class="chip chip-ok">Importado</span>
+                <div class="muted" style="font-size:12px;">ID local: <%= p.pedido_id_local %></div>
+              <% } else { %>
+                <span class="chip chip-warn">Não importado</span>
+              <% } %>
+            </td>
+            <td style="text-align:right;">
+              <% if (!p.ja_importado) { %>
+                <button class="btn btn-primary btn-sm" type="button" onclick="importar('<%= p.id %>')">Importar</button>
+              <% } else { %>
+                <a class="btn btn-outline btn-sm" href="/pedidos/<%= p.pedido_id_local %>">Abrir</a>
+              <% } %>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+async function importar(id){
+  if(!id) return;
+  try{
+    const res = await fetch("/integracoes/bling/importar-pedido/" + encodeURIComponent(id), { method: "POST" });
+    const data = await res.json();
+    if(!data.ok) throw new Error(data.error || "Falha ao importar");
+    alert(data.imported ? ("Importado com sucesso! Pedido local #" + data.pedido_id) : (data.message || "Já importado."));
+    window.location.reload();
+  }catch(e){
+    alert("Erro: " + (e.message || e));
+  }
+}
+
+async function syncNow(){
+  const btn = document.getElementById("btnSyncBling");
+  try{
+    if(btn){ btn.disabled = true; btn.textContent = "Sincronizando..."; }
+    const res = await fetch("/integracoes/bling/sync/run", { method: "POST" });
+    const data = await res.json();
+    if(!data.ok) throw new Error(data.error || "Falha ao sincronizar");
+    alert("Sync concluída: " + (data.message || "ok"));
+    window.location.reload();
+  }catch(e){
+    alert("Erro: " + (e.message || e));
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = "Sincronizar agora"; }
+  }
+}
+</script>

@@ -1,0 +1,216 @@
+<% 
+  const pedidosArr = Array.isArray(pedidos) ? pedidos : [];
+  const f = filtros || {};
+  function chipClass(st){
+    st = String(st||"").toUpperCase();
+    if (st === "FATURADO" || st === "ENTREGUE") return "chip chip-ok";
+    if (st === "CANCELADO") return "chip chip-danger";
+    if (st === "APROVADO" || st === "EM_PRODUCAO" || st === "PRONTO") return "chip chip-info";
+    return "chip chip-warn";
+  }
+%>
+
+<div class="card">
+  <div class="card-head">
+    <div>
+      <div class="h1">Pedidos</div>
+      <div class="muted">Pedidos do vendedor (pré-OP). Converta em OP quando estiver pronto.</div>
+    </div>
+    <div class="card-actions">
+      <a class="btn btn-secondary" href="/pedidos/kanban">🧩 Controle de Pedidos</a>
+      <a class="btn btn-primary" href="/pedidos/novo">+ Novo Pedido</a>
+      <button type="button" class="btn btn-outline" onclick="importarMercadoLivre()">Importar do Mercado Livre</button>
+      <button type="button" class="btn btn-outline" onclick="importarShopee()">Importar da Shopee</button>
+      <button type="button" class="btn btn-outline" onclick="importarBlingPrompt()">Importar do Bling</button>
+    </div>
+  </div>
+
+  <form class="filters" method="get" action="/pedidos" style="margin-top:10px;">
+    <div class="row" style="display:flex; gap:10px; flex-wrap:wrap;">
+      <div style="flex:1; min-width:220px;">
+        <label class="lbl">Busca</label>
+        <input class="inp" name="q" placeholder="cliente, contato, vendedor, id..." value="<%= (f.q||'') %>">
+      </div>
+      <div style="min-width:180px;">
+        <label class="lbl">Status</label>
+        <select class="inp" name="status">
+          <option value="">Todos</option>
+          <% const opts = ['RASCUNHO','ORCAMENTO','APROVADO','EM_PRODUCAO','PRONTO','FATURADO','ENTREGUE','CANCELADO']; %>
+          <% opts.forEach(o => { %>
+            <option value="<%= o %>" <%= (f.status===o?'selected':'') %>><%= o %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div style="min-width:200px;">
+        <label class="lbl">Canal</label>
+        <select class="inp" name="canal">
+          <option value="">Todos</option>
+          <option value="MANUAL" <%= (String(f.canal||'').toUpperCase()==='MANUAL') ? 'selected' : '' %>>Manual</option>
+          <option value="MERCADOLIVRE" <%= (String(f.canal||'').toUpperCase()==='MERCADOLIVRE') ? 'selected' : '' %>>Mercado Livre</option>
+          <option value="SHOPEE" <%= (String(f.canal||'').toUpperCase()==='SHOPEE') ? 'selected' : '' %>>Shopee</option>
+          <option value="BLING" <%= (String(f.canal||'').toUpperCase()==='BLING') ? 'selected' : '' %>>Bling</option>
+        </select>
+      </div>
+      <div style="min-width:220px;">
+        <label class="lbl">Vendedor</label>
+        <input class="inp" name="vendedor" placeholder="nome do vendedor" value="<%= (f.vendedor||'') %>">
+      </div>
+      <div style="min-width:160px;">
+        <label class="lbl">De</label>
+        <input class="inp" type="date" name="de" value="<%= (f.de||'') %>">
+      </div>
+      <div style="min-width:160px;">
+        <label class="lbl">Até</label>
+        <input class="inp" type="date" name="ate" value="<%= (f.ate||'') %>">
+      </div>
+      <div style="align-self:end;">
+        <button class="btn" type="submit">Filtrar</button>
+        <a class="btn btn-ghost" href="/pedidos">Limpar</a>
+      </div>
+    </div>
+  </form>
+
+  <div class="table-wrap" style="margin-top:12px;">
+    <table class="table">
+      <thead>
+        <tr>
+          <th style="width:90px;">#</th>
+          <th>Cliente</th>
+          <th>Canal</th>
+          <th>Vendedor</th>
+          <th>Prazo</th>
+          <th>Prioridade</th>
+          <th>Status</th>
+          <th style="width:140px;">Total</th>
+          <th style="width:220px;">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (pedidosArr.length === 0) { %>
+          <tr><td colspan="9" class="muted">Nenhum pedido encontrado.</td></tr>
+        <% } %>
+
+        <% pedidosArr.forEach(p => { %>
+          <tr>
+            <td>
+              <% const cvDot = String(p.canal_venda || 'MANUAL').toUpperCase(); %>
+              <span
+                title="<%= cvDot %>"
+                style="display:inline-block;width:10px;height:10px;border-radius:999px;margin-right:8px;vertical-align:middle;
+                  background:<%= (cvDot==='MERCADOLIVRE' ? '#2f6fed' : (cvDot==='SHOPEE' ? '#ff7a00' : (cvDot==='BLING' ? '#23b26b' : '#9aa4b2'))) %>;">
+              </span>
+              <%= p.id %>
+            </td>
+            <td>
+              <div style="font-weight:700;"><%= (p.cliente_nome_avulso || p.cliente_nome || '-') %></div>
+              <div class="muted"><%= (p.cliente_telefone_avulso || p.cliente_contato || '') %></div>
+            </td>
+            <td>
+              <% const cv = String(p.canal_venda || 'MANUAL').toUpperCase(); %>
+              <span class="chip <%= (cv==='MERCADOLIVRE' ? 'chip-info' : (cv==='SHOPEE' ? 'chip-warn' : (cv==='BLING' ? 'chip-ok' : 'chip'))) %>"><%= cv==='MERCADOLIVRE' ? 'ML' : (cv==='SHOPEE' ? 'Shopee' : (cv==='BLING' ? 'Bling' : 'Manual')) %></span>
+            </td>
+            <td><%= p.vendedor_nome || '-' %></td>
+            <td><%= p.prazo_entrega || '-' %></td>
+            <td><%= p.prioridade || 'NORMAL' %></td>
+            <td><span class="<%= chipClass(p.status) %>"><%= (p.status || 'ABERTO') %></span></td>
+            <td><%= formatCurrency(p.total ?? 0) %></td>
+            <td style="display:flex; gap:8px; flex-wrap:wrap;">
+              <a class="btn btn-small" href="/pedidos/<%= p.id %>">Ver</a>
+              <% if (p.bling_id) { %>
+                <button class="btn btn-small btn-outline" type="button" onclick="ressincronizarBlingLocal(<%= p.id %>)">Sync Bling</button>
+              <% } %>
+              <% if ((p.status === 'RASCUNHO' || p.status === 'ORCAMENTO' || p.status === 'APROVADO') && !p.op_id) { %>
+                <form method="post" action="/pedidos/<%= p.id %>/gerar-op" style="display:inline;">
+                  <button class="btn btn-small btn-primary" type="submit">Gerar OP</button>
+                </form>
+              <% } %>
+              <% if (p.op_id) { %>
+                <a class="btn btn-small" href="/ops/<%= p.op_id %>">Abrir OP</a>
+              <% } %>
+              <a class="btn btn-small btn-ghost" href="/pedidos/<%= p.id %>/editar">Editar</a>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+async function importarMercadoLivre(){
+  if(!confirm('Sincronizar pedidos do Mercado Livre agora?')) return;
+  try{
+    const res = await fetch('/integracoes/mercadolivre/sync', { method: 'POST' });
+    const data = await res.json().catch(() => ({}));
+    if(!res.ok || data.ok === false) throw new Error(data.error || 'Falha ao sincronizar Mercado Livre');
+    alert(data.message || 'Sincronização Mercado Livre concluída.');
+    window.location.reload();
+  }catch(e){
+    alert('Erro: ' + (e.message || e));
+  }
+}
+
+async function importarShopee(){
+  if(!confirm('Sincronizar pedidos da Shopee agora?')) return;
+  try{
+    const res = await fetch('/integracoes/shopee/sync', { method: 'POST' });
+    const data = await res.json().catch(() => ({}));
+    if(!res.ok || data.ok === false) throw new Error(data.error || 'Falha ao sincronizar Shopee');
+    alert(data.message || 'Sincronização Shopee concluída.');
+    window.location.reload();
+  }catch(e){
+    alert('Erro: ' + (e.message || e));
+  }
+}
+
+async function importarBlingPrompt(){
+  // Mantemos o nome da função para não quebrar o onclick existente,
+  // mas o fluxo agora é igual Mercado Livre / Shopee: sincronização automática.
+  // Para SaaS: você escolhe o período (pela data de criação do pedido no Bling).
+  // Se o filtro "De/Até" estiver preenchido, usamos ele.
+  const deEl = document.querySelector('input[name="de"]');
+  const ateEl = document.querySelector('input[name="ate"]');
+  let de = (deEl && deEl.value) ? String(deEl.value) : "";
+  let ate = (ateEl && ateEl.value) ? String(ateEl.value) : "";
+
+  // Default: deste mês até hoje
+  if(!de){
+    const now = new Date();
+    const first = new Date(now.getFullYear(), now.getMonth(), 1);
+    de = first.toISOString().slice(0,10);
+  }
+  if(!ate){
+    ate = new Date().toISOString().slice(0,10);
+  }
+
+  if(!confirm(`Sincronizar pedidos do Bling no período\n${de} até ${ate}\n(independente do status)?`)) return;
+  try{
+    const fd = new FormData();
+    fd.append('de', de);
+    fd.append('ate', ate);
+    fd.append('windowDays', '30');
+    const res = await fetch('/integracoes/bling/sync/run', { method: 'POST', body: fd });
+    const data = await res.json().catch(() => ({}));
+    if(!res.ok || data.ok === false) throw new Error(data.error || data.message || 'Falha ao sincronizar Bling');
+    const msg = data.message || `Criados: ${data.created || 0} • Atualizados: ${data.updated || 0}`;
+    alert('Sincronização Bling concluída.\n' + msg);
+    window.location.reload();
+  }catch(e){
+    alert('Erro: ' + (e.message || e));
+  }
+}
+
+async function ressincronizarBlingLocal(pedidoId){
+  if(!pedidoId) return;
+  if(!confirm("Re-sincronizar este pedido do Bling? Isso vai atualizar datas, vendedor, observações e itens.")) return;
+  try{
+    const res = await fetch("/integracoes/bling/ressincronizar-pedido-local/" + encodeURIComponent(String(pedidoId)), { method: "POST" });
+    const data = await res.json();
+    if(!data.ok) throw new Error(data.error || "Falha ao sincronizar");
+    alert("OK! Pedido sincronizado. (#" + data.pedido_id + ")");
+    window.location.reload();
+  }catch(e){
+    alert("Erro: " + (e.message || e));
+  }
+}
+</script>

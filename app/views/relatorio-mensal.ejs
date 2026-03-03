@@ -1,0 +1,63 @@
+<%- include("layout", { title: "Relatório Mensal", body: `
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <div class="h1">Relatório Mensal</div>
+        <div class="muted">Selecione o mês para ver entradas e saídas</div>
+      </div>
+
+      <form class="search" method="get" action="/relatorio/mensal">
+        <input type="month" name="mes" value="${mes}" />
+        <button class="btn btn-secondary" type="submit">Ver</button>
+      </form>
+    </div>
+
+    <div class="kpis kpis-compact">
+      <div class="kpi">
+        <div class="kpi-label">Movimentações</div>
+        <div class="kpi-value">${totais.movs || 0}</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Entradas</div>
+        <div class="kpi-value">${totais.entradas || 0}</div>
+      </div>
+      <div class="kpi kpi-warn">
+        <div class="kpi-label">Saídas</div>
+        <div class="kpi-value">${totais.saidas || 0}</div>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Cód.</th>
+            <th>Produto</th>
+            <th>Tipo</th>
+            <th>Qtd</th>
+            <th>Obs</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.length === 0 ? `
+            <tr><td colspan="6" class="td-empty">Nenhuma movimentação nesse mês.</td></tr>
+          ` : rows.map(r => `
+            <tr>
+              <td class="mono">${r.criado_em}</td>
+              <td class="mono">${r.codigo_interno ?? "-"}</td>
+              <td><b>${r.descricao}</b> <span class="muted">• ${r.espessura_mm}mm • ${r.cor}</span></td>
+              <td>
+                <span class="chip ${
+                  r.tipo === "ENTRADA" ? "chip-ok" : (r.tipo === "SAIDA" ? "chip-warn" : "chip-info")
+                }">${r.tipo}</span>
+              </td>
+              <td><b>${r.quantidade}</b></td>
+              <td>${r.observacao ?? "-"}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+  </div>
+` }) %>

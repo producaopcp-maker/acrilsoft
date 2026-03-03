@@ -1,0 +1,20 @@
+<div class="card">
+  <div class="h1">Histórico (últimos 300)</div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Data</th><th>Cód.</th><th>Produto</th><th>Tipo</th><th>Qtd</th><th>Obs</th></tr></thead>
+      <tbody>
+        <% (rows || []).forEach(r => { %>
+          <tr>
+            <td class="mono"><%= r.criado_em %></td>
+            <td class="mono"><%= r.codigo_interno || "-" %></td>
+            <td><b><%= r.descricao %></b> <span class="muted">• <%= r.espessura_mm %>mm • <%= r.cor %></span></td>
+            <td><span class="chip <%= r.tipo === "ENTRADA" ? "chip-ok" : (r.tipo === "SAIDA" ? "chip-warn" : "chip-info") %>"><%= r.tipo %></span></td>
+            <td><b><%= r.quantidade %></b></td>
+            <td><%= r.observacao || "-" %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>

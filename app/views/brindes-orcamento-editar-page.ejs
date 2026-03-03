@@ -1,0 +1,102 @@
+<div class="card">
+  <div class="card-head">
+    <div>
+      <div class="h1">Orçamento de Brindes #<%= orcamento.id %></div>
+      <div class="muted"><%= orcamento.cliente_nome || '-' %> • Status: <b><%= orcamento.status %></b></div>
+    </div>
+    <div class="row gap">
+      <% if (orcamento.pedido_id) { %>
+        <a class="btn btn-primary" href="/pedidos/<%= orcamento.pedido_id %>">Abrir Pedido #<%= orcamento.pedido_id %></a>
+      <% } else { %>
+        <form method="post" action="/brindes/orcamentos/<%= orcamento.id %>/gerar-pedido" style="display:inline">
+          <button class="btn btn-primary" type="submit" onclick="return confirm('Gerar um Pedido a partir deste Orçamento?')">Gerar Pedido</button>
+        </form>
+      <% } %>
+      <a class="btn" href="/brindes/orcamentos/<%= orcamento.id %>/pdf" target="_blank" rel="noopener">Gerar PDF</a>
+      <a class="btn btn-ghost" href="/brindes/orcamentos/<%= orcamento.id %>/whatsapp" target="_blank" rel="noopener">Enviar WhatsApp</a>
+      <a class="btn btn-ghost" href="/brindes/orcamentos">Voltar</a>
+    </div>
+  </div>
+
+  <div class="grid grid-2">
+    <div class="card">
+      <div class="h2">Adicionar item</div>
+
+      <form class="form" method="post" action="/brindes/orcamentos/<%= orcamento.id %>/itens">
+        <label class="field">
+          <span>Item do estoque</span>
+          <select class="input" name="brinde_id" required>
+            <% (estoqueBrindes || []).forEach((b) => { %>
+              <option value="<%= b.id %>"><%= b.nome %> • Disp: <%= b.estoque_atual %> <%= (b.unidade || 'UN') %></option>
+            <% }) %>
+          </select>
+          <div class="muted" style="margin-top:6px">Os itens do orçamento ficam vinculados ao estoque de brindes (quantidade disponível aparece aqui).</div>
+        </label>
+
+        <div class="grid grid-3">
+          <label class="field">
+            <span>Quantidade</span>
+            <input class="input" name="quantidade" type="number" min="1" value="100" required>
+          </label>
+          <label class="field">
+            <span>Margem (%)</span>
+            <input class="input" name="margem_percent" type="number" step="0.01" min="0" value="60">
+          </label>
+          <label class="field">
+            <span>&nbsp;</span>
+            <button class="btn" type="submit">Adicionar</button>
+          </label>
+        </div>
+
+        <div class="muted">O custo unitário inicial pode ser 0 (se não houver faixa de custo cadastrada) e pode ser ajustado depois.</div>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="h2">Resumo</div>
+      <div class="muted">Subtotal: <b>R$ <%= Number(orcamento.subtotal||0).toFixed(2) %></b></div>
+      <div class="muted">Desconto: <b>R$ <%= Number(orcamento.desconto||0).toFixed(2) %></b></div>
+      <div style="margin-top:10px;font-size:1.2em">Total: <b>R$ <%= Number(orcamento.total||0).toFixed(2) %></b></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <div class="h2">Itens</div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Produto</th>
+            <th class="right">Qtd</th>
+            <th class="right">Custo unit</th>
+            <th class="right">Margem</th>
+            <th class="right">Preço unit</th>
+            <th class="right">Total</th>
+            <th class="right">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (!itens || itens.length === 0) { %>
+            <tr><td colspan="7" class="muted">Sem itens ainda.</td></tr>
+          <% } %>
+
+          <% (itens || []).forEach((it) => { %>
+            <tr>
+              <td><%= it.fornecedor_nome %> • <%= it.codigo_fornecedor %> — <%= it.nome %></td>
+              <td class="right"><%= it.quantidade %></td>
+              <td class="right">R$ <%= Number(it.custo_unit_base||0).toFixed(2) %></td>
+              <td class="right"><%= Number(it.margem_percent||0).toFixed(2) %>%</td>
+              <td class="right">R$ <%= Number(it.preco_unit_venda||0).toFixed(2) %></td>
+              <td class="right">R$ <%= Number(it.total_item||0).toFixed(2) %></td>
+              <td class="right">
+                <form method="post" action="/brindes/orcamentos/<%= orcamento.id %>/itens/<%= it.id %>/remover" style="display:inline">
+                  <button class="btn btn-ghost" type="submit" onclick="return confirm('Remover item?')">Remover</button>
+                </form>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

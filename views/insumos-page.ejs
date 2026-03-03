@@ -1,0 +1,62 @@
+
+<div class="kpis">
+  <div class="kpi"><div class="kpi-label">Insumos cadastrados</div><div class="kpi-value"><%= (kpis && kpis.total) || 0 %></div></div>
+  <div class="kpi kpi-warn"><div class="kpi-label">Abaixo do mínimo</div><div class="kpi-value"><%= (kpis && kpis.abaixo_minimo) || 0 %></div></div>
+</div>
+
+<div class="card">
+  <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+    <div>
+      <div class="h1">Insumos</div>
+      <div class="muted">Controle de colas, fitas, materiais de apoio e outros consumíveis</div>
+    </div>
+    <a class="btn" href="/insumos/novo">➕ Novo insumo</a>
+  </div>
+
+  <div class="table-wrap" style="margin-top:12px;">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Categoria</th>
+          <th>Unidade</th>
+          <th>Estoque</th>
+          <th>Mínimo</th>
+          <th style="width:260px;">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (!insumos || insumos.length === 0) { %>
+          <tr><td colspan="6" class="muted">Nenhum insumo cadastrado.</td></tr>
+        <% } %>
+
+        <% (insumos || []).forEach(i => { 
+            const atual = Number(i.estoque_atual||0);
+            const min = Number(i.estoque_minimo||0);
+            const low = atual < min;
+            const u = (i.unidade||'').toLowerCase();
+            const suf = (u==='m') ? ' m' : (u==='ml') ? ' ml' : ' un';
+        %>
+          <tr class="<%= low ? 'row-warn' : '' %>">
+            <td><b><%= i.nome %></b></td>
+            <td><%= i.categoria || '-' %></td>
+            <td><%= i.unidade || '-' %></td>
+            <td><%= atual %><%= suf %></td>
+            <td><%= min %><%= suf %></td>
+            <td style="display:flex; gap:8px; flex-wrap:wrap;">
+              <a class="btn btn-sm" href="/insumos/<%= i.id %>/movimentar">🔄 Movimentar</a>
+              <a class="btn btn-sm" href="/insumos/<%= i.id %>/editar">✏️ Editar</a>
+              <form method="post" action="/insumos/<%= i.id %>/excluir" onsubmit="return confirm('Tem certeza? Isso apaga definitivamente.')" style="display:inline;">
+                <button class="btn btn-sm btn-danger" type="submit">🗑️ Excluir</button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="muted" style="margin-top:10px;">
+    Dica: use “Movimentar” para dar entrada/saída e manter o saldo atualizado.
+  </div>
+</div>
